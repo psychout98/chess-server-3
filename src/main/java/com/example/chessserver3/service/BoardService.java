@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 
 @Service
 @EnableMongoRepositories
@@ -20,20 +22,22 @@ public class BoardService {
     @Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
 
+    private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
+
     public Board createBoard(String sessionId) {
-        String[][] boardKey = {{"wr1", "wn1", "wb1", "wq", "wk", "wb2", "wn2", "wr2"},
-                {"wp1", "wp2", "wp3", "wp4", "wp5", "wp6", "wp7", "wp8"},
-                {"", "", "", "", "", "", "", ""},
-                {"", "", "", "", "", "", "", ""},
-                {"", "", "", "", "", "", "", ""},
-                {"", "", "", "", "", "", "", ""},
-                {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8"},
-                {"br1", "bn1", "bb1", "bq", "bk", "bb2", "bn2", "br2"}
-        };
+//        String[][] boardKey = {{"wr1", "wn1", "wb1", "wq", "wk", "wb2", "wn2", "wr2"},
+//                {"wp1", "wp2", "wp3", "wp4", "wp5", "wp6", "wp7", "wp8"},
+//                {"", "", "", "", "", "", "", ""},
+//                {"", "", "", "", "", "", "", ""},
+//                {"", "", "", "", "", "", "", ""},
+//                {"", "", "", "", "", "", "", ""},
+//                {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8"},
+//                {"br1", "bn1", "bb1", "bq", "bk", "bb2", "bn2", "br2"}
+//        };
         Board board = new Board(
                 new Player("noah", sessionId),
                 null,
-                boardKey,
+                boardKeyString,
                 0,
                 null,
                 false,
@@ -46,7 +50,8 @@ public class BoardService {
     public Board getBoard(String sessionId, String boardId) {
         Board board = boardRepository.findById(boardId);
         if (board != null) {
-            if (board.getBlack() == null) {
+            board.updateBoard();
+            if (board.getBlack() == null && !Objects.equals(board.getWhite().getSessionId(), sessionId)) {
                 board.setBlack(new Player("liam", sessionId));
                 boardRepository.update(board);
             }

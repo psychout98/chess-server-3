@@ -1,10 +1,12 @@
 package com.example.chessserver3.model;
 
 import com.example.chessserver3.exception.InvalidMoveException;
+import lombok.NoArgsConstructor;
 
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@NoArgsConstructor
 public class King extends Piece {
 
     private static final int[][] baseMoves = {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}};

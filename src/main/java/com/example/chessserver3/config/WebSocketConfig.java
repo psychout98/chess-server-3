@@ -10,7 +10,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/").setAllowedOrigins("https://psychout98.github.io");
+        registry.addEndpoint("/").setAllowedOrigins("https://psychout98.github.io", "http://localhost:3000");
     }
 
     @Override

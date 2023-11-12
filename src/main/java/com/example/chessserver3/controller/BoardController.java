@@ -10,7 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 @Controller
-@CrossOrigin(origins = "*", allowCredentials = "true")
+@CrossOrigin(origins = "https://psychout98.github.io", allowCredentials = "true")
 @RequestMapping("/board")
 public class BoardController {
 

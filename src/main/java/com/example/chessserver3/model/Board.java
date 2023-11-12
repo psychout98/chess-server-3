@@ -3,18 +3,19 @@ package com.example.chessserver3.model;
 import com.example.chessserver3.exception.InvalidKeyException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import lombok.NoArgsConstructor;
+import org.bson.codecs.pojo.annotations.BsonExtraElements;
+import org.bson.codecs.pojo.annotations.BsonId;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Data
-@Document("boards")
+@NoArgsConstructor
 public class Board {
 
-    @Id
+    @BsonId
     private String id;
     private Player white;
     private Player black;
@@ -41,18 +42,6 @@ public class Board {
         this.stalemate = stalemate;
         this.pieces = new HashMap<>();
         addPieces();
-    }
-
-    private String[][] boardKeyStringToArray(String boardKeyString) {
-        String[][] boardKeyArray = new String[8][8];
-        String[] boardKeySplitString = boardKeyString.split(",");
-        for (int i=0; i<8; i++) {
-            for (int j=0; j<8; j++) {
-                String key = boardKeySplitString[(8 * i) + j];
-                boardKeyArray[i][j] = Objects.equals(key, "x") ? "" : key;
-            }
-        }
-        return boardKeyArray;
     }
 
     private String boardKeyArrayToString(String[][] boardKeyArray) {

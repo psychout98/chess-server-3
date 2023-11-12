@@ -2,17 +2,21 @@ package com.example.chessserver3.model;
 
 import com.example.chessserver3.exception.InvalidMoveException;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 @Data
+@NoArgsConstructor
 public abstract class Piece {
 
     private int row;
     private int col;
     private boolean white;
+    @BsonIgnore
     private Set<int[]> moves;
     private boolean shallow;
 

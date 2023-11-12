@@ -1,5 +1,8 @@
 package com.example.chessserver3.model;
 
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
 public class Rook extends Piece {
 
 

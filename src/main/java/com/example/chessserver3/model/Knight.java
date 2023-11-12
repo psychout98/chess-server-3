@@ -1,8 +1,11 @@
 package com.example.chessserver3.model;
 
+import lombok.NoArgsConstructor;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@NoArgsConstructor
 public class Knight extends Piece {
 
     private static final int[][] baseMoves = {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};

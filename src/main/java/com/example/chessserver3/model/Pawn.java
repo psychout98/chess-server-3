@@ -1,5 +1,8 @@
 package com.example.chessserver3.model;
 
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor
 public class Pawn extends Piece{
 
     public Pawn(int row, int col, boolean white, boolean shallow) {

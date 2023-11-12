@@ -7,11 +7,10 @@ import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.support.GenericMessage;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
-import java.util.Optional;
+
 
 @Service
 @EnableMongoRepositories
@@ -23,35 +22,42 @@ public class BoardService {
     @Autowired
     private SimpMessagingTemplate simpMessagingTemplate;
 
+    private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
+
     public Board createBoard(String sessionId) {
-        String[][] boardKey = {{"wr1", "wn1", "wb1", "wq", "wk", "wb2", "wn2", "wr2"},
-                {"wp1", "wp2", "wp3", "wp4", "wp5", "wp6", "wp7", "wp8"},
-                {"", "", "", "", "", "", "", ""},
-                {"", "", "", "", "", "", "", ""},
-                {"", "", "", "", "", "", "", ""},
-                {"", "", "", "", "", "", "", ""},
-                {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8"},
-                {"br1", "bn1", "bb1", "bq", "bk", "bb2", "bn2", "br2"}
-        };
-        return boardRepository.save(new Board(new Player("noah", sessionId), null, boardKey, 0, null, false, false, false));
+//        String[][] boardKey = {{"wr1", "wn1", "wb1", "wq", "wk", "wb2", "wn2", "wr2"},
+//                {"wp1", "wp2", "wp3", "wp4", "wp5", "wp6", "wp7", "wp8"},
+//                {"", "", "", "", "", "", "", ""},
+//                {"", "", "", "", "", "", "", ""},
+//                {"", "", "", "", "", "", "", ""},
+//                {"", "", "", "", "", "", "", ""},
+//                {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8"},
+//                {"br1", "bn1", "bb1", "bq", "bk", "bb2", "bn2", "br2"}
+//        };
+        Board board = new Board(
+                new Player("noah", sessionId),
+                null,
+                boardKeyString,
+                0,
+                null,
+                false,
+                false,
+                false);
+        boardRepository.create(board);
+        return board;
     }
 
     public Board getBoard(String sessionId, String boardId) {
-        Optional<Board> boardResponse = boardRepository.findById(boardId);
-        if (boardResponse.isPresent()) {
-            Board board = boardResponse.get();
-            if (Objects.equals(sessionId, board.getWhite().getSessionId())) {
-                return board;
-            } else if (board.getBlack() == null) {
+        Board board = boardRepository.findById(boardId);
+        if (board != null) {
+            board.updateBoard();
+            if (board.getBlack() == null && !Objects.equals(board.getWhite().getSessionId(), sessionId)) {
                 board.setBlack(new Player("liam", sessionId));
-                return boardRepository.save(board);
-            } else if (Objects.equals(sessionId, board.getBlack().getSessionId())) {
-                return board;
-            } else {
-                return board;
+                boardRepository.update(board);
             }
+            return board;
         } else {
-            throw new BoardNotFoundException("Board id=" + sessionId + " not found");
+            throw new BoardNotFoundException("Board id=" + boardId + " not found");
         }
     }
 
@@ -59,6 +65,7 @@ public class BoardService {
         Board board = getBoard(sessionId, boardId);
         board.move(moveCode);
         simpMessagingTemplate.convertAndSend(String.format("wss://pacific-refuge-56148-96967b0a6dc5.herokuapp.com/board/%s", boardId), "move");
-        return boardRepository.save(board);
+        boardRepository.update(board);
+        return board;
     }
 }

@@ -3,23 +3,28 @@ package com.example.chessserver3.model;
 import com.example.chessserver3.exception.InvalidKeyException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import lombok.NoArgsConstructor;
+import org.bson.codecs.pojo.annotations.BsonExtraElements;
+import org.bson.codecs.pojo.annotations.BsonId;
+import org.bson.codecs.pojo.annotations.BsonIgnore;
+import org.bson.types.ObjectId;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Data
-@Document("boards")
+@NoArgsConstructor
 public class Board {
 
-    @Id
+    @BsonId
     private String id;
     private Player white;
     private Player black;
     private HashMap<String, Piece> pieces;
+    @BsonIgnore
     private String[][] boardKey;
+    private String boardKeyString;
     private boolean whiteToMove;
     private Integer currentMove;
     private boolean check;
@@ -28,10 +33,12 @@ public class Board {
     private List<Move> history;
     private boolean shallow;
 
-    public Board(Player white, Player black, String[][] boardKey, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate) {
+    public Board(Player white, Player black, String boardKeyString, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate) {
+        this.id = new ObjectId().toHexString();
         this.white = white;
         this.black = black;
-        this.boardKey = boardKey;
+        this.boardKey = boardKeyStringToArray(boardKeyString);
+        this.boardKeyString = boardKeyString;
         this.currentMove = currentMove;
         this.whiteToMove = currentMove % 2 == 0;
         this.history = history == null ? List.of(new Move("", "", boardKeyArrayToString(boardKey))) : history;
@@ -43,16 +50,22 @@ public class Board {
         addPieces();
     }
 
-    private String[][] boardKeyStringToArray(String boardKeyString) {
-        String[][] boardKeyArray = new String[8][8];
-        String[] boardKeySplitString = boardKeyString.split(",");
+    public void updateBoard() {
+        boardKey = boardKeyStringToArray(boardKeyString);
+        this.pieces = new HashMap<>();
+        addPieces();
+    }
+
+    public String[][] boardKeyStringToArray(String boardKeyString) {
+        String[][] boardKey = new String[8][8];
+        String[] split = boardKeyString.split(",");
         for (int i=0; i<8; i++) {
             for (int j=0; j<8; j++) {
-                String key = boardKeySplitString[(8 * i) + j];
-                boardKeyArray[i][j] = Objects.equals(key, "x") ? "" : key;
+                String key = split[(8 * i) + j];
+                boardKey[i][j] = Objects.equals(key, "x") ? "" : key;
             }
         }
-        return boardKeyArray;
+        return boardKey;
     }
 
     private String boardKeyArrayToString(String[][] boardKeyArray) {
@@ -67,11 +80,7 @@ public class Board {
     }
 
     public Board shallowCopy() {
-        String[][] boardKeyCopy = new String[8][8];
-        for (int i=0; i<8; i++) {
-            System.arraycopy(boardKey[i], 0, boardKeyCopy[i], 0, 8);
-        }
-        return new Board(null, null, boardKeyCopy, history.size() - 1, List.copyOf(history), true, checkmate, stalemate);
+        return new Board(null, null, boardKeyString, history.size() - 1, List.copyOf(history), true, checkmate, stalemate);
     }
 
     private void addPieces() {
@@ -158,6 +167,7 @@ public class Board {
                     moveString += (move[2] + 1);
                     boardKey[move[2]][move[3]] = boardKey[move[0]][move[1]];
                     boardKey[move[0]][move[1]] = "";
+                    boardKeyString = boardKeyArrayToString(boardKey);
                     if (!shallow) {
                         history.add(new Move(moveCode, moveString, boardKeyArrayToString(boardKey)));
                     }

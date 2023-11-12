@@ -58,7 +58,7 @@ public class BoardService {
     public Board move(String sessionId, String boardId, String moveCode) {
         Board board = getBoard(sessionId, boardId);
         board.move(moveCode);
-        simpMessagingTemplate.convertAndSend(String.format("ws://localhost:8080/board/%s", boardId), "move");
+        simpMessagingTemplate.convertAndSend(String.format("wss://pacific-refuge-56148-96967b0a6dc5.herokuapp.com/board/%s", boardId), "move");
         return boardRepository.save(board);
     }
 }

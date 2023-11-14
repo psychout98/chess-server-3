@@ -16,7 +16,6 @@ public abstract class Piece {
     private int row;
     private int col;
     private boolean white;
-    @BsonIgnore
     private Set<int[]> moves;
     private boolean shallow;
 
@@ -33,7 +32,7 @@ public abstract class Piece {
             setRow(move[0]);
             setCol(move[1]);
         } else {
-            throw new InvalidMoveException("Invalid move");
+            throw new InvalidMoveException(String.format("Invalid move %s%s%s%s", row, col, move[0], move[1]));
         }
     }
 

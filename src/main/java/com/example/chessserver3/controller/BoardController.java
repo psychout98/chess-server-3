@@ -1,7 +1,10 @@
 package com.example.chessserver3.controller;
 
+import com.example.chessserver3.exception.BoardNotFoundException;
+import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.BoardResponse;
 import com.example.chessserver3.service.BoardService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Objects;
 
 
@@ -34,6 +35,11 @@ public class BoardService {
 //                {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8"},
 //                {"br1", "bn1", "bb1", "bq", "bk", "bb2", "bn2", "br2"}
 //        };
+        HashMap<String, Boolean> castle = new HashMap<>();
+        castle.put("0402", true);
+        castle.put("0406", true);
+        castle.put("7472", true);
+        castle.put("7476", true);
         Board board = new Board(
                 new Player("noah", sessionId),
                 null,
@@ -42,7 +48,8 @@ public class BoardService {
                 null,
                 false,
                 false,
-                false);
+                false,
+                castle);
         boardRepository.create(board);
         return board;
     }

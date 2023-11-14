@@ -57,16 +57,20 @@ public abstract class Piece {
     }
 
     public boolean isValidMove(int[] move, Board board) {
-        if (!shallow) {
-            Board nextBoard = board.shallowCopy();
-            try {
-                nextBoard.move(String.format("%s%s%s%s", row, col, move[0], move[1]));
+        if (isOnBoard(move) && !isObstructed(move, board.getBoardKey(), white)) {
+            if (!shallow) {
+                Board nextBoard = board.shallowCopy();
+                try {
+                    nextBoard.move(String.format("%s%s%s%s", row, col, move[0], move[1]));
+                    return true;
+                } catch (InvalidMoveException e) {
+                    return false;
+                }
+            } else {
                 return true;
-            } catch (InvalidMoveException e) {
-                return false;
             }
         } else {
-            return isOnBoard(move) && !isObstructed(move, board.getBoardKey(), white);
+            return false;
         }
     }
 

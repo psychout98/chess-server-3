@@ -30,6 +30,11 @@ public class BoardController {
         return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.getBoard(boardId)), HttpStatus.OK);
     }
 
+    @GetMapping("/{boardId}/{moveNumber}")
+    public ResponseEntity<BoardResponse> getBoardAtMove(HttpSession session, @PathVariable String boardId, @PathVariable int moveNumber) {
+        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.getBoardAtMove(boardId, moveNumber)), HttpStatus.OK);
+    }
+
     @PutMapping("/{boardId}/join")
     public ResponseEntity<String> join(HttpSession session, @PathVariable String boardId) {
         boardService.join(boardId, session.getId());
@@ -38,6 +43,6 @@ public class BoardController {
 
     @PutMapping("/{boardId}/move/{moveCode}")
     public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.move(boardId, moveCode)), HttpStatus.OK);
+        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.move(boardId, session.getId(), moveCode)), HttpStatus.OK);
     }
 }

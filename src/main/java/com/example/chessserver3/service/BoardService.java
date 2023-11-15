@@ -75,10 +75,29 @@ public class BoardService {
         }
     }
 
-    public Board move(String boardId, String moveCode) {
+    public Board move(String boardId, String sessionId, String moveCode) {
         Board board = getBoard(boardId);
-        board.move(moveCode);
+        if (Objects.equals(moveCode, "resign")) {
+            if (Objects.equals(board.getWhite().getSessionId(), sessionId)) {
+                board.resign(true);
+            } else if (Objects.equals(board.getBlack().getSessionId(), sessionId)) {
+                board.resign(false);
+            } else {
+                throw new InvalidMoveException("Invalid sessionId");
+            }
+        } else {
+            board.move(moveCode);
+        }
         boardRepository.update(board);
+        return board;
+    }
+
+    public Board getBoardAtMove(String boardId, int moveNumber) {
+        Board board = getBoard(boardId);
+        if (board.getCurrentMove() != moveNumber) {
+            board.setBoardKey(board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
+            board.setShallow(true);
+        }
         return board;
     }
 }

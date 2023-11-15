@@ -33,6 +33,7 @@ public class Board {
     private List<Move> history;
     private boolean shallow;
     private HashMap<String, Boolean> castle;
+    private int winner;
     @BsonIgnore
     private static HashMap<String, String> castleRookMoveCode;
     @BsonIgnore
@@ -53,6 +54,7 @@ public class Board {
         this.check = false;
         this.checkmate = checkmate;
         this.stalemate = stalemate;
+        this.winner = 0;
         this.pieces = new HashMap<>();
         addPieces();
     }
@@ -156,8 +158,12 @@ public class Board {
         move(moveCode, false);
     }
 
+    public void resign(boolean white) {
+        winner = white ? 2 : 1;
+    }
+
     public void move(String moveCode, boolean castleMove) {
-        if (checkmate || stalemate) {
+        if (winner != 0) {
             throw new InvalidMoveException("Game is over");
         }
         String moveString = "";
@@ -243,6 +249,7 @@ public class Board {
                             check = true;
                         }
                     }
+                    winner = checkmate && !stalemate ? whiteToMove ? 2 : 1 : winner;
                 } else {
                     throw new InvalidMoveException("No piece at given start coordinate");
                 }
@@ -303,6 +310,7 @@ public class Board {
 
     private void checkStalemate() {
         stalemate = (checkmate && !check) || isFiftyNeutral() || isThreeFoldRep();
+        winner = stalemate ? 3 : winner;
     }
 
     private boolean isFiftyNeutral() {

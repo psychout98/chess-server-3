@@ -174,7 +174,7 @@ public class Board {
                         throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
                     }
                     int[] destination = Arrays.copyOfRange(move, 2, 4);
-                    moveString += key.contains("p") ? "" : key.substring(1, 2);
+                    moveString += key.contains("p") ? (move[1] == move[3] ? "" : (char) (move[1] + 97)) : key.substring(1, 2);
                     String takenPieceKey = boardKey[move[2]][move[3]];
                     if (!takenPieceKey.isEmpty() && pieces.containsKey(takenPieceKey)) {
                         if (key.contains("p") && isPromotable(whiteToMove, destination)) {
@@ -212,8 +212,7 @@ public class Board {
                             }
                         });
                     }
-                    char col = (char) (move[3] + 97);
-                    moveString += col;
+                    moveString += (char) (move[3] + 97);
                     moveString += (move[2] + 1);
                     boardKey[move[2]][move[3]] = key;
                     boardKey[move[0]][move[1]] = "";

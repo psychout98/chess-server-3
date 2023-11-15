@@ -9,6 +9,7 @@ import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -103,8 +104,8 @@ public class Board {
         return boardKeyString.toString();
     }
 
-    public Board shallowCopy() {
-        return new Board(null, null, boardKeyString, history.size() - 1, List.copyOf(history), true, checkmate, stalemate, castle);
+    public Board shallowCopy(int currentMove) {
+        return new Board(null, null, boardKeyString, currentMove, List.copyOf(history), true, checkmate, stalemate, castle);
     }
 
     private void addPieces() {
@@ -114,7 +115,8 @@ public class Board {
             }
         }
         if (!checkmate) {
-            pieces.forEach((key, value) -> value.generateMoves(this));
+            pieces.values().forEach(piece -> piece.generateMoves(this));
+//            pieces.values().parallelStream().forEach(piece -> piece.generateMoves(this));
         }
     }
 
@@ -221,7 +223,7 @@ public class Board {
                         return;
                     }
                     if (!shallow) {
-                        history.add(new Move(moveCode, moveString, boardKeyArrayToString(boardKey)));
+                        history.add(new Move(moveCode, castleMoveString.get(moveCode) == null ? moveString : castleMoveString.get(moveCode), boardKeyArrayToString(boardKey)));
                         checkCastles(key);
                     }
                     pieces = new HashMap<>();
@@ -234,8 +236,9 @@ public class Board {
                     if (!shallow) {
                         checkmate = pieces.values().stream().noneMatch(p -> p.isWhite() == whiteToMove && !p.getMoves().isEmpty());
                         try {
+                            Board checkBoard = shallowCopy(currentMove);
                             king = pieces.get(whiteToMove ? "wk" : "bk");
-                            validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
+                            checkBoard.validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
                             check = false;
                         } catch (InvalidMoveException e) {
                             check = true;

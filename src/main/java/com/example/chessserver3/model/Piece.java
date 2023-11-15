@@ -59,7 +59,7 @@ public abstract class Piece {
     public boolean isValidMove(int[] move, Board board) {
         if (isOnBoard(move) && !isObstructed(move, board.getBoardKey(), white)) {
             if (!shallow) {
-                Board nextBoard = board.shallowCopy();
+                Board nextBoard = board.shallowCopy(board.getHistory().size() - 1);
                 try {
                     nextBoard.move(String.format("%s%s%s%s", row, col, move[0], move[1]));
                     return true;

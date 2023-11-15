@@ -27,11 +27,17 @@ public class BoardController {
 
     @GetMapping("/{boardId}")
     public ResponseEntity<BoardResponse> getBoard(HttpSession session, @PathVariable String boardId) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.getBoard(session.getId(), boardId)), HttpStatus.OK);
+        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.getBoard(boardId)), HttpStatus.OK);
+    }
+
+    @PutMapping("/{boardId}/join")
+    public ResponseEntity<String> join(HttpSession session, @PathVariable String boardId) {
+        boardService.join(boardId, session.getId());
+        return new ResponseEntity<>(session.getId(), HttpStatus.OK);
     }
 
     @PutMapping("/{boardId}/move/{moveCode}")
     public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.move(session.getId(), boardId, moveCode)), HttpStatus.OK);
+        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.move(boardId, moveCode)), HttpStatus.OK);
     }
 }

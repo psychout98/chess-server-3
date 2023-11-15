@@ -14,7 +14,7 @@ public class Knight extends Piece {
 
     @Override
     public void generateMoves(Board board) {
-        addMoves(Set.of(baseMoves).stream().map(move -> new int[]{move[0] + getRow(), move[1] + getCol()})
-                .collect(Collectors.toSet()), board);
+        addMoves(board, Set.of(baseMoves).stream().map(move -> new int[]{move[0] + getRow(), move[1] + getCol()})
+                .collect(Collectors.toSet()));
     }
 }

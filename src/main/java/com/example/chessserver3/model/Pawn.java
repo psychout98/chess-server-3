@@ -14,21 +14,21 @@ public class Pawn extends Piece{
         int direction = isWhite() ? 1 : -1;
         int[] pushOne = {getRow() + direction, getCol()};
         if (getRow() < 7 && board.getBoardKey()[pushOne[0]][pushOne[1]].isEmpty()) {
-            addMove(pushOne, board);
+            addMove(board, pushOne, false);
         }
         if (getRow() == (isWhite() ? 1 : 6) && !isObstructed(pushOne, board.getBoardKey(), isWhite()) && !isObstructed(pushOne, board.getBoardKey(), !isWhite())) {
             int[] pushTwo = {getRow() + 2 * direction, getCol()};
             if (board.getBoardKey()[pushTwo[0]][pushTwo[1]].isEmpty()) {
-                addMove(pushTwo, board);
+                addMove(board, pushTwo, false);
             }
         }
         int[] attackRight = {getRow() + direction, getCol() + 1};
         if (isOnBoard(attackRight) && (board.getBoardKey()[attackRight[0]][attackRight[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassantable(attackRight, direction))) {
-            addMove(attackRight, board);
+            addMove(board, attackRight);
         }
         int[] attackLeft = {getRow() + direction, getCol() - 1};
         if (isOnBoard(attackLeft) && (board.getBoardKey()[attackLeft[0]][attackLeft[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassantable(attackLeft, direction))) {
-            addMove(attackLeft, board);
+            addMove(board, attackLeft);
         }
     }
 }

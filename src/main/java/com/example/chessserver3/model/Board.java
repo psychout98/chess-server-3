@@ -9,7 +9,6 @@ import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,7 +46,7 @@ public class Board {
         this.boardKeyString = boardKeyString;
         this.currentMove = currentMove;
         this.whiteToMove = currentMove % 2 == 0;
-        this.history = history == null ? List.of(new Move("", "", boardKeyArrayToString(boardKey))) : history;
+        this.history = history == null ? List.of(new Move("", "", boardKeyArrayToString(boardKey), new int[]{0, 0}, false)) : history;
         this.shallow = shallow;
         this.castle = castle;
         setupCastleMoves();
@@ -147,8 +146,8 @@ public class Board {
 
     public void validateKingMove(boolean white, int[] move) {
         Set<Piece> attackers = pieces.values().stream().filter(piece -> piece.isWhite() != white).collect(Collectors.toSet());
-        Stream<int[]> hotspots = attackers.stream().flatMap(piece -> piece.getMoves().stream());
-        if (hotspots.anyMatch(m -> Arrays.equals(m, move))) {
+        Stream<Move> hotspots = attackers.stream().flatMap(piece -> piece.getMoves().stream().filter(m -> m.isAttack()));
+        if (hotspots.anyMatch(m -> Arrays.equals(m.getDestination(), move))) {
             throw new InvalidMoveException("King move to attacked square");
         }
     }
@@ -223,7 +222,8 @@ public class Board {
                         return;
                     }
                     if (!shallow) {
-                        history.add(new Move(moveCode, castleMoveString.get(moveCode) == null ? moveString : castleMoveString.get(moveCode), boardKeyArrayToString(boardKey)));
+                        String castleNotation = castleMoveString.get(moveCode);
+                        history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
                         checkCastles(key);
                     }
                     pieces = new HashMap<>();

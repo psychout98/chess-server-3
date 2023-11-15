@@ -19,21 +19,21 @@ public class King extends Piece {
 
     @Override
     public void generateMoves(Board board) {
-        addMoves(Set.of(baseMoves).stream().map(move -> new int[]{move[0] + getRow(), move[1] + getCol()})
-                .filter(move -> validateKingMove(board, move)).collect(Collectors.toSet()), board);
+        addMoves(board, Set.of(baseMoves).stream().map(move -> new int[]{move[0] + getRow(), move[1] + getCol()})
+                .filter(move -> validateKingMove(board, move)).collect(Collectors.toSet()));
         if (isWhite()) {
             if (board.getCastle().get("0402") && validateCastle(board, 0)) {
-                addMove(castleMoves[0], board);
+                addMove(board, castleMoves[0]);
             }
             if (board.getCastle().get("0406") && validateCastle(board, 1)) {
-                addMove(castleMoves[1], board);
+                addMove(board, castleMoves[1]);
             }
         } else {
             if (board.getCastle().get("7472") && validateCastle(board, 2)) {
-                addMove(castleMoves[2], board);
+                addMove(board, castleMoves[2]);
             }
             if (board.getCastle().get("7476") && validateCastle(board, 3)) {
-                addMove(castleMoves[3], board);
+                addMove(board, castleMoves[3]);
             }
         }
     }

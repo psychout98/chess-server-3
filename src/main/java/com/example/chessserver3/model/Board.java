@@ -154,17 +154,20 @@ public class Board {
         }
     }
 
-    public void move(String moveCode) {
-        move(moveCode, false);
+    public void move(String moveCode, boolean white) {
+        move(moveCode, white,false);
     }
 
     public void resign(boolean white) {
         winner = white ? 2 : 1;
     }
 
-    public void move(String moveCode, boolean castleMove) {
+    public void move(String moveCode, boolean white, boolean castleMove) {
         if (winner != 0) {
             throw new InvalidMoveException("Game is over");
+        }
+        if (white != whiteToMove) {
+            throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
         }
         String moveString = "";
         if (moveCode.length() == 4) {
@@ -214,7 +217,7 @@ public class Board {
                     if (key.contains("k") && Math.abs(move[3] - move[1]) == 2) {
                         castle.forEach((castleKey, castleOk) -> {
                             if (Objects.equals(castleKey, moveCode) && castleOk) {
-                                move(castleRookMoveCode.get(castleKey), true);
+                                move(castleRookMoveCode.get(castleKey), white, true);
                             }
                         });
                     }

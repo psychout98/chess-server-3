@@ -86,7 +86,13 @@ public class BoardService {
                 throw new InvalidMoveException("Invalid sessionId");
             }
         } else {
-            board.move(moveCode);
+            if (Objects.equals(board.getWhite().getSessionId(), sessionId)) {
+                board.move(moveCode, true);
+            } else if (Objects.equals(board.getBlack().getSessionId(), sessionId)) {
+                board.move(moveCode, false);
+            } else {
+                throw new InvalidMoveException("Invalid sessionId");
+            }
         }
         boardRepository.update(board);
         return board;

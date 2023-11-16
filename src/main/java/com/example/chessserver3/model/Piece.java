@@ -69,7 +69,7 @@ public abstract class Piece {
             if (!shallow) {
                 Board nextBoard = board.shallowCopy(board.getHistory().size() - 1);
                 try {
-                    nextBoard.move(move.getMoveCode());
+                    nextBoard.move(move.getMoveCode(), white);
                     return true;
                 } catch (InvalidMoveException e) {
                     return false;

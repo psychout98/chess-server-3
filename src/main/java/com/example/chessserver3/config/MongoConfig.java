@@ -1,6 +1,7 @@
 package com.example.chessserver3.config;
 
-import com.example.chessserver3.model.*;
+import com.example.chessserver3.model.board.*;
+import com.example.chessserver3.model.user.User;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerApi;
@@ -50,21 +51,24 @@ public class MongoConfig {
         return MongoClients.create(settings);
     }
 
+
     @Bean
     public MongoCollection<Board> boards() {
         ClassModel<Board> boardPojo = ClassModel.builder(Board.class).enableDiscriminator(true).build();
-        ClassModel<Piece> pieceModel = ClassModel.builder(Piece.class).enableDiscriminator(true).build();
-        ClassModel<Pawn> pawnModel = ClassModel.builder(Pawn.class).enableDiscriminator(true).build();
-        ClassModel<Rook> rookModel = ClassModel.builder(Rook.class).enableDiscriminator(true).build();
-        ClassModel<Knight> knightModel = ClassModel.builder(Knight.class).enableDiscriminator(true).build();
-        ClassModel<Bishop> bishopModel = ClassModel.builder(Bishop.class).enableDiscriminator(true).build();
-        ClassModel<Queen> queenModel = ClassModel.builder(Queen.class).enableDiscriminator(true).build();
-        ClassModel<King> kingModel = ClassModel.builder(King.class).enableDiscriminator(true).build();
         ClassModel<Player> playerModel = ClassModel.builder(Player.class).enableDiscriminator(true).build();
         ClassModel<Move> moveModel = ClassModel.builder(Move.class).enableDiscriminator(true).build();
-        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().register(boardPojo, pieceModel, pawnModel, rookModel, knightModel, bishopModel, queenModel, kingModel, playerModel, moveModel).build();
+        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().register(boardPojo, playerModel, moveModel).build();
         CodecRegistry pojoCodecRegistry = fromRegistries(getDefaultCodecRegistry(), fromProviders(pojoCodecProvider));
         MongoDatabase database = mongoClient().getDatabase("chess").withCodecRegistry(pojoCodecRegistry);
         return database.getCollection("boards", Board.class);
+    }
+
+    @Bean
+    public MongoCollection<User> users() {
+        ClassModel<User> userPojo = ClassModel.builder(User.class).enableDiscriminator(true).build();
+        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().register(userPojo).build();
+        CodecRegistry pojoCodecRegistry = fromRegistries(getDefaultCodecRegistry(), fromProviders(pojoCodecProvider));
+        MongoDatabase database = mongoClient().getDatabase("chess").withCodecRegistry(pojoCodecRegistry);
+        return database.getCollection("users", User.class);
     }
 }

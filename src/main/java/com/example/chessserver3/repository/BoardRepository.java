@@ -1,13 +1,9 @@
 package com.example.chessserver3.repository;
 
-import com.example.chessserver3.model.Board;
+import com.example.chessserver3.model.board.Board;
 import com.mongodb.client.MongoCollection;
-import org.bson.BsonObjectId;
-import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
 
 import static com.mongodb.client.model.Filters.*;
 

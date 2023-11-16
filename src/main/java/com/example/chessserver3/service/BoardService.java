@@ -2,8 +2,8 @@ package com.example.chessserver3.service;
 
 import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
-import com.example.chessserver3.model.Board;
-import com.example.chessserver3.model.Player;
+import com.example.chessserver3.model.board.Board;
+import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
@@ -19,19 +19,12 @@ public class BoardService {
 
     @Autowired
     private BoardRepository boardRepository;
+    @Autowired
+    private UserService userService;
 
     private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
 
     public Board createBoard(Player player) {
-//        String[][] boardKey = {{"wr1", "wn1", "wb1", "wq", "wk", "wb2", "wn2", "wr2"},
-//                {"wp1", "wp2", "wp3", "wp4", "wp5", "wp6", "wp7", "wp8"},
-//                {"", "", "", "", "", "", "", ""},
-//                {"", "", "", "", "", "", "", ""},
-//                {"", "", "", "", "", "", "", ""},
-//                {"", "", "", "", "", "", "", ""},
-//                {"bp1", "bp2", "bp3", "bp4", "bp5", "bp6", "bp7", "bp8"},
-//                {"br1", "bn1", "bb1", "bq", "bk", "bb2", "bn2", "br2"}
-//        };
         HashMap<String, Boolean> castle = new HashMap<>();
         castle.put("0402", true);
         castle.put("0406", true);
@@ -48,10 +41,12 @@ public class BoardService {
                 false,
                 castle);
         boardRepository.create(board);
+        userService.addGameToUser(player.getId(), board.getId());
         return board;
     }
 
     public void join(String boardId, Player player) {
+        userService.addGameToUser(player.getId(), boardId);
         Board board = getBoard(boardId);
         if (board.getBlack() == null) {
             board.setBlack(player);

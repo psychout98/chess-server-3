@@ -1,9 +1,8 @@
-package com.example.chessserver3.model;
+package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidMoveException;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
 

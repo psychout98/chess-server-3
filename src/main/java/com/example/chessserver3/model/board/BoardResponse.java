@@ -1,4 +1,4 @@
-package com.example.chessserver3.model;
+package com.example.chessserver3.model.board;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

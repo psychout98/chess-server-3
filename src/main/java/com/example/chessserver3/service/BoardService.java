@@ -7,7 +7,6 @@ import com.example.chessserver3.model.Player;
 import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -23,7 +22,7 @@ public class BoardService {
 
     private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
 
-    public Board createBoard(String sessionId) {
+    public Board createBoard(Player player) {
 //        String[][] boardKey = {{"wr1", "wn1", "wb1", "wq", "wk", "wb2", "wn2", "wr2"},
 //                {"wp1", "wp2", "wp3", "wp4", "wp5", "wp6", "wp7", "wp8"},
 //                {"", "", "", "", "", "", "", ""},
@@ -39,7 +38,7 @@ public class BoardService {
         castle.put("7472", true);
         castle.put("7476", true);
         Board board = new Board(
-                new Player("liam", sessionId),
+                player,
                 null,
                 boardKeyString,
                 0,
@@ -52,12 +51,12 @@ public class BoardService {
         return board;
     }
 
-    public void join(String boardId, String sessionId) {
+    public void join(String boardId, Player player) {
         Board board = getBoard(boardId);
         if (board.getBlack() == null) {
-            board.setBlack(new Player("jacob", sessionId));
+            board.setBlack(player);
         } else if (board.getWhite() == null) {
-            board.setWhite(new Player("jacob", sessionId));
+            board.setWhite(player);
         } else {
             throw new InvalidMoveException("Cannot join full game");
         }
@@ -75,23 +74,23 @@ public class BoardService {
         }
     }
 
-    public Board move(String boardId, String sessionId, String moveCode) {
+    public Board move(String boardId, Player player, String moveCode) {
         Board board = getBoard(boardId);
         if (Objects.equals(moveCode, "resign")) {
-            if (Objects.equals(board.getWhite().getSessionId(), sessionId)) {
+            if (Objects.equals(board.getWhite().getId(), player.getId())) {
                 board.resign(true);
-            } else if (Objects.equals(board.getBlack().getSessionId(), sessionId)) {
+            } else if (Objects.equals(board.getBlack().getId(), player.getId())) {
                 board.resign(false);
             } else {
-                throw new InvalidMoveException("Invalid sessionId");
+                throw new InvalidMoveException("Invalid Id");
             }
         } else {
-            if (Objects.equals(board.getWhite().getSessionId(), sessionId)) {
+            if (Objects.equals(board.getWhite().getId(), player.getId())) {
                 board.move(moveCode, true);
-            } else if (Objects.equals(board.getBlack().getSessionId(), sessionId)) {
+            } else if (Objects.equals(board.getBlack().getId(), player.getId())) {
                 board.move(moveCode, false);
             } else {
-                throw new InvalidMoveException("Invalid sessionId");
+                throw new InvalidMoveException("Invalid Id");
             }
         }
         boardRepository.update(board);

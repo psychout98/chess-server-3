@@ -148,7 +148,7 @@ public class Board {
 
     public void validateKingMove(boolean white, int[] move) {
         Set<Piece> attackers = pieces.values().stream().filter(piece -> piece.isWhite() != white).collect(Collectors.toSet());
-        Stream<Move> hotspots = attackers.stream().flatMap(piece -> piece.getMoves().stream().filter(m -> m.isAttack()));
+        Stream<Move> hotspots = attackers.stream().flatMap(piece -> piece.getMoves().stream().filter(Move::isAttack));
         if (hotspots.anyMatch(m -> Arrays.equals(m.getDestination(), move))) {
             throw new InvalidMoveException("King move to attacked square");
         }
@@ -169,98 +169,114 @@ public class Board {
         if (white != whiteToMove) {
             throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
         }
-        String moveString = "";
         if (moveCode.length() == 4) {
             int[] move = new int[4];
             for (int i=0; i<4; i++) {
                 move[i] = moveCode.charAt(i) - '0';
             }
             if (Arrays.stream(move).allMatch(i -> i < 8 && i >= 0)) {
-                String key = boardKey[move[0]][move[1]];
-                Piece piece = pieces.get(key);
-                if (piece != null) {
-                    if (piece.isWhite() != whiteToMove) {
-                        throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
-                    }
-                    int[] destination = Arrays.copyOfRange(move, 2, 4);
-                    moveString += key.contains("p") ? (move[1] == move[3] ? "" : (char) (move[1] + 97)) : key.substring(1, 2);
-                    String takenPieceKey = boardKey[move[2]][move[3]];
-                    if (!takenPieceKey.isEmpty() && pieces.containsKey(takenPieceKey)) {
-                        if (key.contains("p") && isPromotable(whiteToMove, destination)) {
-                            key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
-                            boardKey[move[0]][move[1]] = key;
-                            pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
-                            piece = pieces.get(key);
-                            piece.generateMoves(this);
-                        }
-                        pieces.remove(takenPieceKey);
-                        moveString += "x";
-                    } else if (key.contains("p")) {
-                        int direction = whiteToMove ? 1 : -1;
-                        if(isEnPassantable(destination, direction)) {
-                            takenPieceKey = boardKey[move[2] - direction][move[3]];
-                            if (pieces.containsKey(takenPieceKey)) {
-                                pieces.remove(takenPieceKey);
-                                boardKey[move[2] - direction][move[3]] = "";
-                                moveString += "x";
-                            }
-                        }
-                        if (key.contains("p") && isPromotable(whiteToMove, destination)) {
-                            key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
-                            boardKey[move[0]][move[1]] = key;
-                            pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
-                            piece = pieces.get(key);
-                            piece.generateMoves(this);
-                        }
-                    }
-                    piece.move(destination);
-                    if (key.contains("k") && Math.abs(move[3] - move[1]) == 2) {
-                        castle.forEach((castleKey, castleOk) -> {
-                            if (Objects.equals(castleKey, moveCode) && castleOk) {
-                                move(castleRookMoveCode.get(castleKey), white, true);
-                            }
-                        });
-                    }
-                    moveString += (char) (move[3] + 97);
-                    moveString += (move[2] + 1);
-                    boardKey[move[2]][move[3]] = key;
-                    boardKey[move[0]][move[1]] = "";
-                    boardKeyString = boardKeyArrayToString(boardKey);
-                    if (castleMove) {
-                        return;
-                    }
-                    if (!shallow) {
-                        String castleNotation = castleMoveString.get(moveCode);
-                        history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
-                        checkCastles(key);
-                    }
-                    pieces = new HashMap<>();
-                    checkStalemate();
-                    addPieces();
-                    Piece king = pieces.get(whiteToMove ? "wk" : "bk");
-                    validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
-                    whiteToMove = !whiteToMove;
-                    currentMove++;
-                    if (!shallow) {
-                        checkmate = pieces.values().stream().noneMatch(p -> p.isWhite() == whiteToMove && !p.getMoves().isEmpty());
-                        try {
-                            Board checkBoard = shallowCopy(currentMove);
-                            king = pieces.get(whiteToMove ? "wk" : "bk");
-                            checkBoard.validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
-                            check = false;
-                        } catch (InvalidMoveException e) {
-                            check = true;
-                        }
-                    }
-                    winner = checkmate && !stalemate ? whiteToMove ? 2 : 1 : winner;
-                } else {
-                    throw new InvalidMoveException("No piece at given start coordinate");
-                }
+                move(moveCode, move, white, castleMove);
             } else {
                 throw new InvalidMoveException(String.format("Unable to parse move code %s", moveCode));
             }
         } else {
             throw new InvalidMoveException(String.format("Move code has incorrect format %s", moveCode));
+        }
+    }
+
+    private void move(String moveCode, int[] move, boolean white, boolean castleMove) {
+        String key = boardKey[move[0]][move[1]];
+        Piece piece = pieces.get(key);
+        if (piece != null) {
+
+            if (piece.isWhite() != whiteToMove) {
+                throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
+            }
+
+            int[] destination = Arrays.copyOfRange(move, 2, 4);
+            String moveString = generateMoveString(move, destination, key, piece);
+            piece.move(destination);
+
+            if (key.contains("k") && Math.abs(move[3] - move[1]) == 2) {
+                castle.forEach((castleKey, castleOk) -> {
+                    if (Objects.equals(castleKey, moveCode) && castleOk) {
+                        move(castleRookMoveCode.get(castleKey), white, true);
+                    }
+                });
+            }
+
+            moveString += (char) (move[3] + 97);
+            moveString += (move[2] + 1);
+            boardKey[move[2]][move[3]] = key;
+            boardKey[move[0]][move[1]] = "";
+            boardKeyString = boardKeyArrayToString(boardKey);
+
+            if (castleMove) {
+                return;
+            }
+
+            if (!shallow) {
+                String castleNotation = castleMoveString.get(moveCode);
+                history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
+                checkCastles(key);
+            }
+
+            pieces = new HashMap<>();
+            checkStalemate();
+            addPieces();
+            Piece king = pieces.get(whiteToMove ? "wk" : "bk");
+            validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
+            whiteToMove = !whiteToMove;
+            currentMove++;
+
+            if (!shallow) {
+                checkmate = pieces.values().stream().noneMatch(p -> p.isWhite() == whiteToMove && !p.getMoves().isEmpty());
+                try {
+                    Board checkBoard = shallowCopy(currentMove);
+                    king = pieces.get(whiteToMove ? "wk" : "bk");
+                    checkBoard.validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
+                    check = false;
+                } catch (InvalidMoveException e) {
+                    check = true;
+                }
+            }
+
+            winner = checkmate && !stalemate ? whiteToMove ? 2 : 1 : winner;
+
+        } else {
+            throw new InvalidMoveException("No piece at given start coordinate");
+        }
+    }
+
+    private String generateMoveString(int[] move, int[] destination, String key, Piece piece) {
+        String moveString = key.contains("p") ? (move[1] == move[3] ? "" : String.valueOf((char) (move[1] + 97))) : key.substring(1, 2);
+        String takenPieceKey = boardKey[move[2]][move[3]];
+        if (!takenPieceKey.isEmpty() && pieces.containsKey(takenPieceKey)) {
+            pawnPromotion(move, destination, key, piece);
+            pieces.remove(takenPieceKey);
+            moveString += "x";
+        } else if (key.contains("p")) {
+            int direction = whiteToMove ? 1 : -1;
+            if(isEnPassant(destination, direction)) {
+                takenPieceKey = boardKey[move[2] - direction][move[3]];
+                if (pieces.containsKey(takenPieceKey)) {
+                    pieces.remove(takenPieceKey);
+                    boardKey[move[2] - direction][move[3]] = "";
+                    moveString += "x";
+                }
+            }
+            pawnPromotion(move, destination, key, piece);
+        }
+        return moveString;
+    }
+
+    private void pawnPromotion(int[] move, int[] destination, String key, Piece piece) {
+        if (key.contains("p") && isPromotable(whiteToMove, destination)) {
+            key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
+            boardKey[move[0]][move[1]] = key;
+            pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
+            piece = pieces.get(key);
+            piece.generateMoves(this);
         }
     }
 
@@ -281,7 +297,7 @@ public class Board {
         }
     }
 
-    public boolean isEnPassantable(int[] move, int direction) {
+    public boolean isEnPassant(int[] move, int direction) {
         if (currentMove > 1) {
             String lastMoveCode = history.get(history.size() - 1).getMoveCode();
             int[] lastMove = {lastMoveCode.charAt(0) - '0', lastMoveCode.charAt(1) - '0', lastMoveCode.charAt(2) - '0', lastMoveCode.charAt(3) - '0'};

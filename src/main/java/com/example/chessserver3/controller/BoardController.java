@@ -1,10 +1,8 @@
 package com.example.chessserver3.controller;
 
-import com.example.chessserver3.exception.BoardNotFoundException;
-import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.BoardResponse;
+import com.example.chessserver3.model.Player;
 import com.example.chessserver3.service.BoardService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,28 +19,33 @@ public class BoardController {
     BoardService boardService;
 
     @PostMapping("")
-    public ResponseEntity<BoardResponse> createBoard(HttpSession session, @RequestParam(required = false) String sessionId) {
-        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.createBoard(sessionId == null ? session.getId() : sessionId)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> createBoard(HttpSession session, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
+        Player player = new Player(playerName == null ? "anonymous" : playerName, playerId == null ? session.getId() : playerId);
+        return new ResponseEntity<>(new BoardResponse(player, boardService.createBoard(player)), HttpStatus.OK);
     }
 
     @GetMapping("/{boardId}")
-    public ResponseEntity<BoardResponse> getBoard(HttpSession session, @PathVariable String boardId,  @RequestParam(required = false) String sessionId) {
-        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.getBoard(boardId)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> getBoard(HttpSession session, @PathVariable String boardId, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
+        Player player = new Player(playerName == null ? "anonymous" : playerName, playerId == null ? session.getId() : playerId);
+        return new ResponseEntity<>(new BoardResponse(player, boardService.getBoard(boardId)), HttpStatus.OK);
     }
 
     @GetMapping("/{boardId}/{moveNumber}")
-    public ResponseEntity<BoardResponse> getBoardAtMove(HttpSession session, @PathVariable String boardId, @PathVariable int moveNumber,  @RequestParam(required = false) String sessionId) {
-        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.getBoardAtMove(boardId, moveNumber)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> getBoardAtMove(HttpSession session, @PathVariable String boardId, @PathVariable int moveNumber, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
+        Player player = new Player(playerName == null ? "anonymous" : playerName, playerId == null ? session.getId() : playerId);
+        return new ResponseEntity<>(new BoardResponse(player, boardService.getBoardAtMove(boardId, moveNumber)), HttpStatus.OK);
     }
 
     @PutMapping("/{boardId}/join")
-    public ResponseEntity<String> join(HttpSession session, @PathVariable String boardId,  @RequestParam(required = false) String sessionId) {
-        boardService.join(boardId, sessionId == null ? session.getId() : sessionId);
-        return new ResponseEntity<>(sessionId == null ? session.getId() : sessionId, HttpStatus.OK);
+    public ResponseEntity<Player> join(HttpSession session, @PathVariable String boardId, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
+        Player player = new Player(playerName == null ? "anonymous" : playerName, playerId == null ? session.getId() : playerId);
+        boardService.join(boardId, player);
+        return new ResponseEntity<>(player, HttpStatus.OK);
     }
 
     @PutMapping("/{boardId}/move/{moveCode}")
-    public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode, @RequestParam(required = false) String sessionId) {
-        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.move(boardId, sessionId == null ? session.getId() : sessionId, moveCode)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
+        Player player = new Player(playerName == null ? "anonymous" : playerName, playerId == null ? session.getId() : playerId);
+        return new ResponseEntity<>(new BoardResponse(player, boardService.move(boardId, player, moveCode)), HttpStatus.OK);
     }
 }

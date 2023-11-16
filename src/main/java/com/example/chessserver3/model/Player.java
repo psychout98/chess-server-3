@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class Player {
 
     private String name;
-    private String sessionId;
+    private String id;
 }

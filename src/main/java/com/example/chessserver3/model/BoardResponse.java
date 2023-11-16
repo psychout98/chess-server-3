@@ -7,6 +7,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class BoardResponse {
 
-    private String sessionId;
+    private Player player;
     private Board board;
 }

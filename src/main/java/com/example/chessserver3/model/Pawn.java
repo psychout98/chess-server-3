@@ -23,11 +23,11 @@ public class Pawn extends Piece{
             }
         }
         int[] attackRight = {getRow() + direction, getCol() + 1};
-        if (isOnBoard(attackRight) && (board.getBoardKey()[attackRight[0]][attackRight[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassantable(attackRight, direction))) {
+        if (isOnBoard(attackRight) && (board.getBoardKey()[attackRight[0]][attackRight[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassant(attackRight, direction))) {
             addMove(board, attackRight);
         }
         int[] attackLeft = {getRow() + direction, getCol() - 1};
-        if (isOnBoard(attackLeft) && (board.getBoardKey()[attackLeft[0]][attackLeft[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassantable(attackLeft, direction))) {
+        if (isOnBoard(attackLeft) && (board.getBoardKey()[attackLeft[0]][attackLeft[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassant(attackLeft, direction))) {
             addMove(board, attackLeft);
         }
     }

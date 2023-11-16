@@ -96,6 +96,7 @@ public class BoardService {
         Board board = getBoard(boardId);
         if (board.getCurrentMove() != moveNumber) {
             board.setBoardKey(board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
+            board.setCurrentMove(moveNumber);
             board.setShallow(true);
         }
         return board;

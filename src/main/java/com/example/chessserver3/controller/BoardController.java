@@ -22,7 +22,7 @@ public class BoardController {
 
     @PostMapping("")
     public ResponseEntity<BoardResponse> createBoard(HttpSession session, @RequestParam(required = false) String sessionId) {
-        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.createBoard(session.getId())), HttpStatus.OK);
+        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.createBoard(sessionId == null ? session.getId() : sessionId)), HttpStatus.OK);
     }
 
     @GetMapping("/{boardId}")
@@ -38,11 +38,11 @@ public class BoardController {
     @PutMapping("/{boardId}/join")
     public ResponseEntity<String> join(HttpSession session, @PathVariable String boardId,  @RequestParam(required = false) String sessionId) {
         boardService.join(boardId, sessionId == null ? session.getId() : sessionId);
-        return new ResponseEntity<>(session.getId(), HttpStatus.OK);
+        return new ResponseEntity<>(sessionId == null ? session.getId() : sessionId, HttpStatus.OK);
     }
 
     @PutMapping("/{boardId}/move/{moveCode}")
     public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode, @RequestParam(required = false) String sessionId) {
-        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.move(boardId, session.getId(), moveCode)), HttpStatus.OK);
+        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.move(boardId, sessionId == null ? session.getId() : sessionId, moveCode)), HttpStatus.OK);
     }
 }

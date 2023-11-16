@@ -42,7 +42,7 @@ public class BoardController {
     }
 
     @PutMapping("/{boardId}/move/{moveCode}")
-    public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.move(boardId, session.getId(), moveCode)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> move(HttpSession session, @PathVariable String boardId, @PathVariable String moveCode, @RequestParam(required = false) String sessionId) {
+        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.move(boardId, session.getId(), moveCode)), HttpStatus.OK);
     }
 }

@@ -21,23 +21,23 @@ public class BoardController {
     BoardService boardService;
 
     @PostMapping("")
-    public ResponseEntity<BoardResponse> createBoard(HttpSession session) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.createBoard(session.getId())), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> createBoard(HttpSession session, @RequestParam(required = false) String sessionId) {
+        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.createBoard(session.getId())), HttpStatus.OK);
     }
 
     @GetMapping("/{boardId}")
-    public ResponseEntity<BoardResponse> getBoard(HttpSession session, @PathVariable String boardId) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.getBoard(boardId)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> getBoard(HttpSession session, @PathVariable String boardId,  @RequestParam(required = false) String sessionId) {
+        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.getBoard(boardId)), HttpStatus.OK);
     }
 
     @GetMapping("/{boardId}/{moveNumber}")
-    public ResponseEntity<BoardResponse> getBoardAtMove(HttpSession session, @PathVariable String boardId, @PathVariable int moveNumber) {
-        return new ResponseEntity<>(new BoardResponse(session.getId(), boardService.getBoardAtMove(boardId, moveNumber)), HttpStatus.OK);
+    public ResponseEntity<BoardResponse> getBoardAtMove(HttpSession session, @PathVariable String boardId, @PathVariable int moveNumber,  @RequestParam(required = false) String sessionId) {
+        return new ResponseEntity<>(new BoardResponse(sessionId == null ? session.getId() : sessionId, boardService.getBoardAtMove(boardId, moveNumber)), HttpStatus.OK);
     }
 
     @PutMapping("/{boardId}/join")
-    public ResponseEntity<String> join(HttpSession session, @PathVariable String boardId) {
-        boardService.join(boardId, session.getId());
+    public ResponseEntity<String> join(HttpSession session, @PathVariable String boardId,  @RequestParam(required = false) String sessionId) {
+        boardService.join(boardId, sessionId == null ? session.getId() : sessionId);
         return new ResponseEntity<>(session.getId(), HttpStatus.OK);
     }
 

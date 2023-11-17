@@ -1,5 +1,6 @@
 package com.example.chessserver3.controller;
 
+import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.BoardResponse;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.model.user.UserResponse;
@@ -11,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Controller
 @CrossOrigin(origins = {"https://psychout98.github.io", "http://localhost:3000"}, allowCredentials = "true")
@@ -31,6 +34,11 @@ public class ChessController {
     public ResponseEntity<UserResponse> createUser(HttpSession session, @RequestHeader(value = "username") String username, @RequestHeader(value = "password") String password) {
         userService.createUser(username, password, session.getId());
         return new ResponseEntity<>(new UserResponse(username, session.getId()), HttpStatus.OK);
+    }
+
+    @GetMapping("/player/{playerName}/boards")
+    public ResponseEntity<List<Board>> getBoardsByPlayerName(@PathVariable String playerName) {
+        return new ResponseEntity<>(boardService.getBoardsByPlayerName(playerName), HttpStatus.OK);
     }
 
     @PostMapping("/board")

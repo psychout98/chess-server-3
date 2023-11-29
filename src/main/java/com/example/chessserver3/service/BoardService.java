@@ -3,16 +3,17 @@ package com.example.chessserver3.service;
 import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.board.Board;
+import com.example.chessserver3.model.board.Move;
+import com.example.chessserver3.model.board.Piece;
 import com.example.chessserver3.model.board.Player;
-import com.example.chessserver3.model.user.User;
 import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -24,18 +25,24 @@ public class BoardService {
     private BoardRepository boardRepository;
     @Autowired
     private UserService userService;
+    @Autowired
+    private AutoMoveService autoMoveService;
 
     private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
 
-    public Board createBoard(Player player) {
-        HashMap<String, Boolean> castle = new HashMap<>();
+
+    private final static HashMap<String, Boolean> castle = new HashMap<>();
+    static {
         castle.put("0402", true);
         castle.put("0406", true);
         castle.put("7472", true);
         castle.put("7476", true);
+    }
+
+    public Board createBoard(Player player, Player opponent) {
         Board board = new Board(
                 player,
-                null,
+                opponent,
                 boardKeyString,
                 0,
                 null,
@@ -92,6 +99,15 @@ public class BoardService {
             }
         }
         boardRepository.update(board);
+        try {
+            if (Objects.equals(board.getWhite().getName(), "computer")) {
+                autoMoveService.autoMove(board, true);
+            } else if (Objects.equals(board.getBlack().getName(), "computer")) {
+                autoMoveService.autoMove(board, false);
+            }
+        } catch (InterruptedException e) {
+            System.out.println(e.getMessage());
+        }
         return board;
     }
 

@@ -35,9 +35,19 @@ public class Board {
     private HashMap<String, Boolean> castle;
     private int winner;
     @BsonIgnore
-    private static HashMap<String, String> castleRookMoveCode;
+    private static final HashMap<String, String> castleRookMoveCode = new HashMap<>();
     @BsonIgnore
-    private static HashMap<String, String> castleMoveString;
+    private final static HashMap<String, String> castleMoveString = new HashMap<>();
+    static {
+        castleRookMoveCode.put("0402", "0003");
+        castleRookMoveCode.put("0406", "0705");
+        castleRookMoveCode.put("7472", "7073");
+        castleRookMoveCode.put("7476", "7775");
+        castleMoveString.put("0402", "O-O-O");
+        castleMoveString.put("0406", "O-O");
+        castleMoveString.put("7472", "O-O-O");
+        castleMoveString.put("7476", "O-O");
+    }
 
     public Board(Player white, Player black, String boardKeyString, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate, HashMap<String, Boolean> castle) {
         this.id = new ObjectId().toHexString();
@@ -50,30 +60,12 @@ public class Board {
         this.history = history == null ? List.of(new Move("", "", boardKeyArrayToString(boardKey), new int[]{0, 0}, false)) : history;
         this.shallow = shallow;
         this.castle = castle;
-        setupCastleMoves();
         this.check = false;
         this.checkmate = checkmate;
         this.stalemate = stalemate;
         this.winner = 0;
         this.pieces = new HashMap<>();
         addPieces();
-    }
-
-    public static void setupCastleMoves() {
-        if (castleRookMoveCode == null) {
-            castleRookMoveCode = new HashMap<>();
-            castleRookMoveCode.put("0402", "0003");
-            castleRookMoveCode.put("0406", "0705");
-            castleRookMoveCode.put("7472", "7073");
-            castleRookMoveCode.put("7476", "7775");
-        }
-        if (castleMoveString == null) {
-            castleMoveString = new HashMap<>();
-            castleMoveString.put("0402", "O-O-O");
-            castleMoveString.put("0406", "O-O");
-            castleMoveString.put("7472", "O-O-O");
-            castleMoveString.put("7476", "O-O");
-        }
     }
 
     public void updateBoard() {

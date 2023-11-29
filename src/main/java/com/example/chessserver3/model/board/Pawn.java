@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class Pawn extends Piece{
 
+    private static final int points = 1;
     public Pawn(int row, int col, boolean white, boolean shallow) {
         super(row, col, white, shallow);
     }
@@ -30,5 +31,10 @@ public class Pawn extends Piece{
         if (isOnBoard(attackLeft) && (board.getBoardKey()[attackLeft[0]][attackLeft[1]].startsWith(isWhite() ? "b" : "w") || board.isEnPassant(attackLeft, direction))) {
             addMove(board, attackLeft);
         }
+    }
+
+    @Override
+    public int getPoints() {
+        return points;
     }
 }

@@ -10,6 +10,7 @@ import org.bson.types.ObjectId;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Data
@@ -48,6 +49,8 @@ public class Board {
         castleMoveString.put("7472", "O-O-O");
         castleMoveString.put("7476", "O-O");
     }
+    @BsonIgnore
+    private int advantage;
 
     public Board(Player white, Player black, String boardKeyString, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate, HashMap<String, Boolean> castle) {
         this.id = new ObjectId().toHexString();
@@ -98,7 +101,7 @@ public class Board {
     }
 
     public Board shallowCopy(int currentMove) {
-        return new Board(null, null, boardKeyString, currentMove, List.copyOf(history), true, checkmate, stalemate, castle);
+        return new Board(null, null, boardKeyString, currentMove, new ArrayList<>(history), true, checkmate, stalemate, castle);
     }
 
     private void addPieces() {
@@ -111,6 +114,9 @@ public class Board {
             pieces.values().forEach(piece -> piece.generateMoves(this));
 //            pieces.values().parallelStream().forEach(piece -> piece.generateMoves(this));
         }
+        int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
+        int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
+        advantage = whitePoints - blackPoints;
     }
 
     private void addPiece(String key, int row, int col) {
@@ -207,9 +213,9 @@ public class Board {
                 return;
             }
 
+            String castleNotation = castleMoveString.get(moveCode);
+            history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
             if (!shallow) {
-                String castleNotation = castleMoveString.get(moveCode);
-                history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
                 checkCastles(key);
             }
 

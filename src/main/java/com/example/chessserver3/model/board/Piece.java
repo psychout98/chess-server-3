@@ -37,6 +37,8 @@ public abstract class Piece {
 
     public abstract void generateMoves(Board board);
 
+    public abstract int getPoints();
+
 
     public void addMove(Board board, int[] move) {
         addMove(board, move, true);

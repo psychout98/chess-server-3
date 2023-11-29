@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 @NoArgsConstructor
 public class King extends Piece {
 
+    private static final int points = 100;
     private static final int[][] baseMoves = {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}};
     private static final int[][] castleMoves = {{0, 2}, {0, 6}, {7, 2}, {7, 6}};
     private static final int[][][] castleSpaces = {{{0, 1}, {0, 2}, {0, 3}}, {{0, 5}, {0, 6}}, {{7, 1}, {7, 2}, {7, 3}}, {{7, 5}, {7, 6}}};
@@ -35,6 +36,11 @@ public class King extends Piece {
                 addMove(board, castleMoves[3]);
             }
         }
+    }
+
+    @Override
+    public int getPoints() {
+        return points;
     }
 
     private boolean validateKingMove(Board board, int[] move) {

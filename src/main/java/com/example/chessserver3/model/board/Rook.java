@@ -1,15 +1,22 @@
 package com.example.chessserver3.model.board;
 
-import lombok.NoArgsConstructor;
+import java.util.HashSet;
 
-@NoArgsConstructor
 public class Rook extends Piece {
 
+    private static final int points = 5;
 
-    public Rook(int row, int col, boolean white, boolean shallow) { super(row, col, white, shallow); }
+    public Rook(int row, int col, boolean white, boolean shallow, Board board) {
+        super(row, col, white, new HashSet<>(), shallow, board);
+    }
 
     @Override
-    public void generateMoves(Board board) {
-        addRookMoves(board);
+    public void generateMoves() {
+        addRookMoves();
+    }
+
+    @Override
+    public int getPoints() {
+        return points;
     }
 }

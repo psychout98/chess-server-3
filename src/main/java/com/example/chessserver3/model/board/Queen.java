@@ -1,15 +1,23 @@
 package com.example.chessserver3.model.board;
 
-import lombok.NoArgsConstructor;
+import java.util.HashSet;
 
-@NoArgsConstructor
 public class Queen extends Piece {
 
-    public Queen(int row, int col, boolean white, boolean shallow) { super(row, col, white, shallow); }
+    private static final int points = 9;
+
+    public Queen(int row, int col, boolean white, boolean shallow, Board board) {
+        super(row, col, white, new HashSet<>(), shallow, board);
+    }
 
     @Override
-    public void generateMoves(Board board) {
-        addRookMoves(board);
-        addBishopMoves(board);
+    public void generateMoves() {
+        addRookMoves();
+        addBishopMoves();
+    }
+
+    @Override
+    public int getPoints() {
+        return points;
     }
 }

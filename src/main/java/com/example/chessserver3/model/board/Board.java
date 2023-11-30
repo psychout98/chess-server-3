@@ -2,17 +2,20 @@ package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidKeyException;
 import com.example.chessserver3.exception.InvalidMoveException;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 public class Board {
 
@@ -48,6 +51,8 @@ public class Board {
         castleMoveString.put("7472", "O-O-O");
         castleMoveString.put("7476", "O-O");
     }
+    @BsonIgnore
+    private int advantage;
 
     public Board(Player white, Player black, String boardKeyString, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate, HashMap<String, Boolean> castle) {
         this.id = new ObjectId().toHexString();
@@ -97,8 +102,8 @@ public class Board {
         return boardKeyString.toString();
     }
 
-    public Board shallowCopy(int currentMove) {
-        return new Board(null, null, boardKeyString, currentMove, List.copyOf(history), true, checkmate, stalemate, castle);
+    public Board copy(boolean shallow, int currentMove) {
+        return new Board(null, null, boardKeyString, currentMove, new ArrayList<>(history), shallow, checkmate, stalemate, castle);
     }
 
     private void addPieces() {
@@ -107,10 +112,18 @@ public class Board {
                 addPiece(boardKey[i][j], i, j);
             }
         }
-        if (!checkmate) {
-            pieces.values().forEach(piece -> piece.generateMoves(this));
-//            pieces.values().parallelStream().forEach(piece -> piece.generateMoves(this));
-        }
+        pieces.values().forEach(piece -> {
+            try {
+                piece.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        pieces.get("wk").generateMoves();
+        pieces.get("bk").generateMoves();
+        int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
+        int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
+        advantage = whitePoints - blackPoints;
     }
 
     private void addPiece(String key, int row, int col) {
@@ -127,14 +140,17 @@ public class Board {
     private void addPiece(int row, int col, boolean white, String key) {
         char name = key.charAt(1);
         Piece piece = switch (name) {
-            case 'p' -> new Pawn(row, col, white, shallow);
-            case 'r' -> new Rook(row, col, white, shallow);
-            case 'n' -> new Knight(row, col, white, shallow);
-            case 'b' -> new Bishop(row, col, white, shallow);
-            case 'k' -> new King(row, col, white, shallow);
-            case 'q' -> new Queen(row, col, white, shallow);
+            case 'p' -> new Pawn(row, col, white, shallow, this);
+            case 'r' -> new Rook(row, col, white, shallow, this);
+            case 'n' -> new Knight(row, col, white, shallow, this);
+            case 'b' -> new Bishop(row, col, white, shallow, this);
+            case 'k' -> new King(row, col, white, shallow, this);
+            case 'q' -> new Queen(row, col, white, shallow, this);
             default -> throw new InvalidKeyException("Invalid piece key");
         };
+        if (!checkmate && name != 'k') {
+            piece.start();
+        }
         pieces.put(key, piece);
     }
 
@@ -192,9 +208,9 @@ public class Board {
                 if (key.contains("p") && isPromotable(whiteToMove, destination)) {
                     key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
                     boardKey[move[0]][move[1]] = key;
-                    pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
+                    pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow(), this));
                     piece = pieces.get(key);
-                    piece.generateMoves(this);
+                    piece.generateMoves();
                 }
                 pieces.remove(takenPieceKey);
                 moveString += "x";
@@ -211,9 +227,9 @@ public class Board {
                 if (key.contains("p") && isPromotable(whiteToMove, destination)) {
                     key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
                     boardKey[move[0]][move[1]] = key;
-                    pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
+                    pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow(), this));
                     piece = pieces.get(key);
-                    piece.generateMoves(this);
+                    piece.generateMoves();
                 }
             }
             piece.move(destination);
@@ -236,9 +252,9 @@ public class Board {
                 return;
             }
 
+            String castleNotation = castleMoveString.get(moveCode);
+            history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
             if (!shallow) {
-                String castleNotation = castleMoveString.get(moveCode);
-                history.add(new Move(moveCode, castleNotation == null ? moveString : castleNotation, boardKeyArrayToString(boardKey), destination, moveString.contains("x")));
                 checkCastles(key);
             }
 
@@ -253,7 +269,7 @@ public class Board {
             if (!shallow) {
                 checkmate = pieces.values().stream().noneMatch(p -> p.isWhite() == whiteToMove && !p.getMoves().isEmpty());
                 try {
-                    Board checkBoard = shallowCopy(currentMove);
+                    Board checkBoard = copy(true, currentMove);
                     king = pieces.get(whiteToMove ? "wk" : "bk");
                     checkBoard.validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
                     check = false;
@@ -266,16 +282,6 @@ public class Board {
 
         } else {
             throw new InvalidMoveException("No piece at given start coordinate");
-        }
-    }
-
-    private void pawnPromotion(int[] move, int[] destination, String key, Piece piece) {
-        if (key.contains("p") && isPromotable(whiteToMove, destination)) {
-            key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
-            boardKey[move[0]][move[1]] = key;
-            pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
-            piece = pieces.get(key);
-            piece.generateMoves(this);
         }
     }
 

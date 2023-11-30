@@ -99,14 +99,16 @@ public class BoardService {
             }
         }
         boardRepository.update(board);
-        try {
-            if (Objects.equals(board.getWhite().getName(), "computer")) {
-                autoMoveService.autoMove(board, true);
-            } else if (Objects.equals(board.getBlack().getName(), "computer")) {
-                autoMoveService.autoMove(board, false);
+        if (!board.isCheckmate()) {
+            try {
+                if (Objects.equals(board.getWhite().getName(), "computer")) {
+                    autoMoveService.autoMove(board, true);
+                } else if (Objects.equals(board.getBlack().getName(), "computer")) {
+                    autoMoveService.autoMove(board, false);
+                }
+            } catch (InterruptedException e) {
+                System.out.println(e.getMessage());
             }
-        } catch (InterruptedException e) {
-            System.out.println(e.getMessage());
         }
         return board;
     }

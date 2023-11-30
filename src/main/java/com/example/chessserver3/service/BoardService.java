@@ -3,14 +3,10 @@ package com.example.chessserver3.service;
 import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.board.Board;
-import com.example.chessserver3.model.board.Move;
-import com.example.chessserver3.model.board.Piece;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -30,7 +26,6 @@ public class BoardService {
     private AutoMoveService autoMoveService;
 
     private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
-
 
     private final static HashMap<String, Boolean> castle = new HashMap<>();
     static {
@@ -107,7 +102,7 @@ public class BoardService {
                 } else if (Objects.equals(board.getBlack().getName(), "computer")) {
                     autoMoveService.autoMove(board, false);
                 }
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InvalidMoveException e) {
                 System.out.println(e.getMessage());
             }
         }

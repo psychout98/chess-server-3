@@ -14,6 +14,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 
@@ -106,7 +107,7 @@ public class BoardService {
                 } else if (Objects.equals(board.getBlack().getName(), "computer")) {
                     autoMoveService.autoMove(board, false);
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 System.out.println(e.getMessage());
             }
         }

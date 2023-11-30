@@ -10,7 +10,7 @@ import java.util.Set;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-public abstract class Piece extends Thread {
+public abstract class Piece {
 
     private int row;
     private int col;
@@ -19,8 +19,6 @@ public abstract class Piece extends Thread {
     private boolean shallow;
     @JsonIgnore
     private Board board;
-
-    public void run() { generateMoves(); }
 
     public void move(int[] move) {
         if (moves.stream().anyMatch(m -> Arrays.equals(m.getDestination(), move))) {

@@ -51,8 +51,6 @@ public class Board {
         castleMoveString.put("7472", "O-O-O");
         castleMoveString.put("7476", "O-O");
     }
-    @BsonIgnore
-    private int advantage;
 
     public Board(Player white, Player black, String boardKeyString, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate, HashMap<String, Boolean> castle) {
         this.id = new ObjectId().toHexString();
@@ -106,24 +104,19 @@ public class Board {
         return new Board(null, null, boardKeyString, currentMove, new ArrayList<>(history), shallow, checkmate, stalemate, castle);
     }
 
+    public int calculateAdvantage() {
+        int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
+        int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
+        return checkmate ? whiteToMove ? -40 : 40 : whitePoints - blackPoints;
+    }
+
     private void addPieces() {
         for (int i=0; i<8; i++) {
             for (int j=0; j<8; j++) {
                 addPiece(boardKey[i][j], i, j);
             }
         }
-        pieces.values().forEach(piece -> {
-            try {
-                piece.join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        pieces.get("wk").generateMoves();
-        pieces.get("bk").generateMoves();
-        int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
-        int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
-        advantage = whitePoints - blackPoints;
+        pieces.values().forEach(Piece::generateMoves);
     }
 
     private void addPiece(String key, int row, int col) {
@@ -148,9 +141,6 @@ public class Board {
             case 'q' -> new Queen(row, col, white, shallow, this);
             default -> throw new InvalidKeyException("Invalid piece key");
         };
-        if (!checkmate && name != 'k') {
-            piece.start();
-        }
         pieces.put(key, piece);
     }
 

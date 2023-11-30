@@ -13,7 +13,7 @@ public class Pawn extends Piece{
     public void generateMoves(Board board) {
         int direction = isWhite() ? 1 : -1;
         int[] pushOne = {getRow() + direction, getCol()};
-        if (getRow() < 7 && board.getBoardKey()[pushOne[0]][pushOne[1]].isEmpty()) {
+        if ((isWhite() && getRow() < 7 || !isWhite() && getRow() > 0) && board.getBoardKey()[pushOne[0]][pushOne[1]].isEmpty()) {
             addMove(board, pushOne, false);
         }
         if (getRow() == (isWhite() ? 1 : 6) && !isObstructed(pushOne, board.getBoardKey(), isWhite()) && !isObstructed(pushOne, board.getBoardKey(), !isWhite())) {

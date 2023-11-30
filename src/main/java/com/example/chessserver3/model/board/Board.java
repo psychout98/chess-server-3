@@ -190,9 +190,38 @@ public class Board {
             if (piece.isWhite() != whiteToMove) {
                 throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
             }
-
+            String moveString = "";
             int[] destination = Arrays.copyOfRange(move, 2, 4);
-            String moveString = generateMoveString(move, destination, key, piece);
+            moveString += key.contains("p") ? (move[1] == move[3] ? "" : (char) (move[1] + 97)) : key.substring(1, 2);
+            String takenPieceKey = boardKey[move[2]][move[3]];
+            if (!takenPieceKey.isEmpty() && pieces.containsKey(takenPieceKey)) {
+                if (key.contains("p") && isPromotable(whiteToMove, destination)) {
+                    key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
+                    boardKey[move[0]][move[1]] = key;
+                    pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
+                    piece = pieces.get(key);
+                    piece.generateMoves(this);
+                }
+                pieces.remove(takenPieceKey);
+                moveString += "x";
+            } else if (key.contains("p")) {
+                int direction = whiteToMove ? 1 : -1;
+                if(isEnPassant(destination, direction)) {
+                    takenPieceKey = boardKey[move[2] - direction][move[3]];
+                    if (pieces.containsKey(takenPieceKey)) {
+                        pieces.remove(takenPieceKey);
+                        boardKey[move[2] - direction][move[3]] = "";
+                        moveString += "x";
+                    }
+                }
+                if (key.contains("p") && isPromotable(whiteToMove, destination)) {
+                    key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
+                    boardKey[move[0]][move[1]] = key;
+                    pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow()));
+                    piece = pieces.get(key);
+                    piece.generateMoves(this);
+                }
+            }
             piece.move(destination);
 
             if (key.contains("k") && Math.abs(move[3] - move[1]) == 2) {
@@ -244,28 +273,6 @@ public class Board {
         } else {
             throw new InvalidMoveException("No piece at given start coordinate");
         }
-    }
-
-    private String generateMoveString(int[] move, int[] destination, String key, Piece piece) {
-        String moveString = key.contains("p") ? (move[1] == move[3] ? "" : String.valueOf((char) (move[1] + 97))) : key.substring(1, 2);
-        String takenPieceKey = boardKey[move[2]][move[3]];
-        if (!takenPieceKey.isEmpty() && pieces.containsKey(takenPieceKey)) {
-            pawnPromotion(move, destination, key, piece);
-            pieces.remove(takenPieceKey);
-            moveString += "x";
-        } else if (key.contains("p")) {
-            int direction = whiteToMove ? 1 : -1;
-            if(isEnPassant(destination, direction)) {
-                takenPieceKey = boardKey[move[2] - direction][move[3]];
-                if (pieces.containsKey(takenPieceKey)) {
-                    pieces.remove(takenPieceKey);
-                    boardKey[move[2] - direction][move[3]] = "";
-                    moveString += "x";
-                }
-            }
-            pawnPromotion(move, destination, key, piece);
-        }
-        return moveString;
     }
 
     private void pawnPromotion(int[] move, int[] destination, String key, Piece piece) {

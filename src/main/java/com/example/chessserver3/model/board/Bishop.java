@@ -7,7 +7,7 @@ public class Bishop extends Piece {
 
     private static final int points = 3;
 
-    public Bishop(int row, int col, boolean white, boolean shallow, Board board) { super(row, col, white, new HashSet<>(), shallow, board); }
+    public Bishop(int row, int col, boolean white, boolean shallow, Board board) { super(row, col, white, new HashSet<>(), shallow, board, false); }
 
     @Override
     public void generateMoves() {

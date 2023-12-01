@@ -1,6 +1,7 @@
 package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.example.chessserver3.exception.KingCheckedException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
@@ -19,6 +20,7 @@ public abstract class Piece {
     private boolean shallow;
     @JsonIgnore
     private Board board;
+    private boolean kingAttacker;
 
     public void move(int[] move) {
         if (moves.stream().anyMatch(m -> Arrays.equals(m.getDestination(), move))) {
@@ -63,12 +65,15 @@ public abstract class Piece {
     public boolean isValidMove(Move move) {
         if (isOnBoard(move.getDestination()) && !isObstructed(move.getDestination(), white)) {
             if (!shallow) {
-                Board nextBoard = board.copy(true, board.getHistory().size() - 1);
+                Board nextBoard = board.copy(true);
                 try {
                     nextBoard.move(move.getMoveCode(), white);
                     return true;
                 } catch (InvalidMoveException e) {
                     return false;
+                } catch (KingCheckedException e) {
+                    kingAttacker = true;
+                    return true;
                 }
             } else {
                 return true;

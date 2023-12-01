@@ -15,7 +15,7 @@ public class King extends Piece {
     private static final int[][] checkSpaces = {{0, 3}, {0, 5}, {7, 3}, {7, 5}};
 
     public King(int row, int col, boolean white, boolean shallow, Board board) {
-        super(row, col, white, new HashSet<>(), shallow, board);
+        super(row, col, white, new HashSet<>(), shallow, board, false);
     }
 
     @Override

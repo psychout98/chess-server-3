@@ -2,6 +2,7 @@ package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidKeyException;
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.example.chessserver3.exception.KingCheckedException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,13 +29,9 @@ public class Board {
     @BsonIgnore
     private String[][] boardKey;
     private String boardKeyString;
-    private boolean whiteToMove;
-    private Integer currentMove;
-    private boolean check;
-    private boolean checkmate;
-    private boolean stalemate;
     private List<Move> history;
     private boolean shallow;
+    private boolean check;
     private HashMap<String, Boolean> castle;
     private int winner;
     @BsonIgnore
@@ -52,28 +49,31 @@ public class Board {
         castleMoveString.put("7476", "O-O");
     }
 
-    public Board(Player white, Player black, String boardKeyString, Integer currentMove, List<Move> history, boolean shallow, boolean checkmate, boolean stalemate, HashMap<String, Boolean> castle) {
+    public Board(Player white, Player black, String boardKeyString, List<Move> history, boolean shallow, HashMap<String, Boolean> castle) {
         this.id = new ObjectId().toHexString();
         this.white = white;
         this.black = black;
         this.boardKey = boardKeyStringToArray(boardKeyString);
         this.boardKeyString = boardKeyString;
-        this.currentMove = currentMove;
-        this.whiteToMove = currentMove % 2 == 0;
-        this.history = history == null ? List.of(new Move("", "", boardKeyArrayToString(boardKey), new int[]{0, 0}, false)) : history;
+        this.history = history;
         this.shallow = shallow;
         this.castle = castle;
-        this.check = false;
-        this.checkmate = checkmate;
-        this.stalemate = stalemate;
         this.winner = 0;
         this.pieces = new HashMap<>();
         addPieces();
     }
 
+    public Integer getCurrentMove() {
+        return history.size() - 1;
+    }
+
+    public boolean isWhiteToMove() {
+        return getCurrentMove() % 2 == 0;
+    }
+
     public void updateBoard() {
         boardKey = boardKeyStringToArray(boardKeyString);
-        this.pieces = new HashMap<>();
+        pieces = new HashMap<>();
         addPieces();
     }
 
@@ -100,14 +100,14 @@ public class Board {
         return boardKeyString.toString();
     }
 
-    public Board copy(boolean shallow, int currentMove) {
-        return new Board(null, null, boardKeyString, currentMove, new ArrayList<>(history), shallow, checkmate, stalemate, castle);
+    public Board copy(boolean shallow) {
+        return new Board(null, null, boardKeyString, new ArrayList<>(history), shallow, new HashMap<>(castle));
     }
 
     public int calculateAdvantage() {
         int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
         int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
-        return checkmate ? whiteToMove ? -40 : 40 : whitePoints - blackPoints;
+        return isCheckmate() ? isWhiteToMove() ? -40 : 40 : whitePoints - blackPoints;
     }
 
     private void addPieces() {
@@ -116,7 +116,7 @@ public class Board {
                 addPiece(boardKey[i][j], i, j);
             }
         }
-        pieces.values().forEach(Piece::generateMoves);
+        check = pieces.values().stream().peek(Piece::generateMoves).filter(piece -> piece.isWhite() == isWhiteToMove()).anyMatch(Piece::isKingAttacker);
     }
 
     private void addPiece(String key, int row, int col) {
@@ -152,20 +152,20 @@ public class Board {
         }
     }
 
-    public void move(String moveCode, boolean white) {
-        move(moveCode, white,false);
-    }
-
     public void resign(boolean white) {
         winner = white ? 2 : 1;
     }
 
+    public void move(String moveCode, boolean white) {
+        move(moveCode, white,false);
+    }
+
     public void move(String moveCode, boolean white, boolean castleMove) {
-        if (winner != 0) {
+        if (winner != 0 || isCheckmate() || isStalemate()) {
             throw new InvalidMoveException("Game is over");
         }
-        if (white != whiteToMove) {
-            throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
+        if (white != isWhiteToMove() && !shallow) {
+            throw new InvalidMoveException("It is " + (isWhiteToMove() ? "white" : "black") + "'s turn");
         }
         if (moveCode.length() == 4) {
             int[] move = new int[4];
@@ -187,15 +187,18 @@ public class Board {
         Piece piece = pieces.get(key);
         if (piece != null) {
 
-            if (piece.isWhite() != whiteToMove) {
-                throw new InvalidMoveException("It is " + (whiteToMove ? "white" : "black") + "'s turn");
+            if (piece.isWhite() != isWhiteToMove() && !shallow) {
+                throw new InvalidMoveException("It is " + (isWhiteToMove() ? "white" : "black") + "'s turn");
             }
             String moveString = "";
             int[] destination = Arrays.copyOfRange(move, 2, 4);
+            if (boardKey[destination[0]][destination[1]].contains("k")) {
+                throw new InvalidMoveException("King on destination");
+            }
             moveString += key.contains("p") ? (move[1] == move[3] ? "" : (char) (move[1] + 97)) : key.substring(1, 2);
             String takenPieceKey = boardKey[move[2]][move[3]];
             if (!takenPieceKey.isEmpty() && pieces.containsKey(takenPieceKey)) {
-                if (key.contains("p") && isPromotable(whiteToMove, destination)) {
+                if (key.contains("p") && isPromotable(isWhiteToMove(), destination)) {
                     key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
                     boardKey[move[0]][move[1]] = key;
                     pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow(), this));
@@ -205,7 +208,7 @@ public class Board {
                 pieces.remove(takenPieceKey);
                 moveString += "x";
             } else if (key.contains("p")) {
-                int direction = whiteToMove ? 1 : -1;
+                int direction = isWhiteToMove() ? 1 : -1;
                 if(isEnPassant(destination, direction)) {
                     takenPieceKey = boardKey[move[2] - direction][move[3]];
                     if (pieces.containsKey(takenPieceKey)) {
@@ -214,7 +217,7 @@ public class Board {
                         moveString += "x";
                     }
                 }
-                if (key.contains("p") && isPromotable(whiteToMove, destination)) {
+                if (key.contains("p") && isPromotable(isWhiteToMove(), destination)) {
                     key = (piece.isWhite() ? "w" : "b") + "q" + getQueenIndex(piece.isWhite());
                     boardKey[move[0]][move[1]] = key;
                     pieces.put(key, new Queen(piece.getRow(), piece.getCol(), piece.isWhite(), piece.isShallow(), this));
@@ -238,6 +241,13 @@ public class Board {
             boardKey[move[0]][move[1]] = "";
             boardKeyString = boardKeyArrayToString(boardKey);
 
+            if (checkCheck(!isWhiteToMove())) {
+                throw new InvalidMoveException("Move puts king in check");
+            }
+            if (checkCheck(isWhiteToMove())) {
+                throw new KingCheckedException("Move attacks king");
+            }
+
             if (castleMove) {
                 return;
             }
@@ -249,30 +259,26 @@ public class Board {
             }
 
             pieces = new HashMap<>();
-            checkStalemate();
             addPieces();
-            Piece king = pieces.get(whiteToMove ? "wk" : "bk");
-            validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
-            whiteToMove = !whiteToMove;
-            currentMove++;
-
-            if (!shallow) {
-                checkmate = pieces.values().stream().noneMatch(p -> p.isWhite() == whiteToMove && !p.getMoves().isEmpty());
-                try {
-                    Board checkBoard = copy(true, currentMove);
-                    king = pieces.get(whiteToMove ? "wk" : "bk");
-                    checkBoard.validateKingMove(whiteToMove, new int[]{king.getRow(), king.getCol()});
-                    check = false;
-                } catch (InvalidMoveException e) {
-                    check = true;
-                }
-            }
-
-            winner = checkmate && !stalemate ? whiteToMove ? 2 : 1 : winner;
+            winner = isCheckmate() && !isStalemate() ? isWhiteToMove() ? 2 : 1 :  isStalemate() ? 3 : winner;
 
         } else {
             throw new InvalidMoveException("No piece at given start coordinate");
         }
+    }
+
+    private boolean checkCheck(boolean white) {
+        Piece king = pieces.get(white ? "wk" : "bk");
+        try {
+            validateKingMove(white, new int[]{king.getRow(), king.getCol()});
+        } catch (InvalidMoveException e) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isCheckmate() {
+        return pieces.values().stream().noneMatch(p -> p.isWhite() == isWhiteToMove() && !p.getMoves().isEmpty());
     }
 
     private void checkCastles(String key) {
@@ -293,7 +299,7 @@ public class Board {
     }
 
     public boolean isEnPassant(int[] move, int direction) {
-        if (currentMove > 1) {
+        if (getCurrentMove() > 1) {
             String lastMoveCode = history.get(history.size() - 1).getMoveCode();
             int[] lastMove = {lastMoveCode.charAt(0) - '0', lastMoveCode.charAt(1) - '0', lastMoveCode.charAt(2) - '0', lastMoveCode.charAt(3) - '0'};
             boolean lastMovePawn = boardKey[lastMove[2]][lastMove[3]].contains("p");
@@ -322,9 +328,8 @@ public class Board {
         return index;
     }
 
-    private void checkStalemate() {
-        stalemate = (checkmate && !check) || isFiftyNeutral() || isThreeFoldRep();
-        winner = stalemate ? 3 : winner;
+    private boolean isStalemate() {
+        return (isCheckmate() && !checkCheck(isWhiteToMove())) || isFiftyNeutral() || isThreeFoldRep();
     }
 
     private boolean isFiftyNeutral() {

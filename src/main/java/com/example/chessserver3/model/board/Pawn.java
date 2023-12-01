@@ -6,7 +6,7 @@ public class Pawn extends Piece{
 
     private static final int points = 1;
     public Pawn(int row, int col, boolean white, boolean shallow, Board board) {
-        super(row, col, white, new HashSet<>(), shallow, board);
+        super(row, col, white, new HashSet<>(), shallow, board, false);
     }
 
     @Override

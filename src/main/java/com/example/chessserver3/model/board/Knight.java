@@ -10,7 +10,7 @@ public class Knight extends Piece {
     private static final int[][] baseMoves = {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};
 
     public Knight(int row, int col, boolean white, boolean shallow, Board board) {
-        super(row, col, white, new HashSet<>(), shallow, board);
+        super(row, col, white, new HashSet<>(), shallow, board, false);
     }
 
     @Override

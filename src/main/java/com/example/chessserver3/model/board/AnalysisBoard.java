@@ -18,12 +18,12 @@ public class AnalysisBoard extends RecursiveTask<Board> {
     private Board bestBoard;
     private int highestAdvantageWhite, highestAdvantageBlack;
 
-    public AnalysisBoard(Board board, int depth, int highestAdvantageWhite, int highestAdvantageBlack) {
+    public AnalysisBoard(Board board, int depth) {
         this.board = board;
         this.depth = depth;
-        this.bestBoard = board.copy(false, board.getCurrentMove());
-        this.highestAdvantageWhite = highestAdvantageWhite;
-        this.highestAdvantageBlack = highestAdvantageBlack;
+        this.bestBoard = board.copy(false);
+        this.highestAdvantageWhite = board.calculateAdvantage();
+        this.highestAdvantageBlack = this.highestAdvantageWhite;
     }
 
     @Override
@@ -45,16 +45,18 @@ public class AnalysisBoard extends RecursiveTask<Board> {
                         .collect(Collectors.toSet());
                 for (Board futureBoard : futureBoards) {
                     int advantage = futureBoard.calculateAdvantage();
-                    if (advantage < highestAdvantageBlack && !futureBoard.isWhiteToMove()) {
+                    if (advantage < highestAdvantageBlack && !board.isWhiteToMove()) {
 //                        System.out.println("\n" + advantage);
 //                        System.out.println(futureBoard.getHistory().stream().map(Move::getMoveString).toList());
+//                        System.out.println(highestAdvantageWhite + ", " + highestAdvantageBlack + ", " + advantage + ", " + futureBoard.isWhiteToMove());
                         highestAdvantageBlack = advantage;
                         bestBoard = futureBoard;
                     }
-                    if (advantage > highestAdvantageBlack && futureBoard.isWhiteToMove()) {
+                    if (advantage > highestAdvantageWhite && board.isWhiteToMove()) {
 //                        System.out.println("\n" + advantage);
 //                        System.out.println(futureBoard.getHistory().stream().map(Move::getMoveString).toList());
-                        highestAdvantageBlack = advantage;
+//                        System.out.println(highestAdvantageWhite + ", " + highestAdvantageBlack + ", " + advantage + ", " + futureBoard.isWhiteToMove());
+                        highestAdvantageWhite = advantage;
                         bestBoard = futureBoard;
                     }
                 }
@@ -65,9 +67,9 @@ public class AnalysisBoard extends RecursiveTask<Board> {
 
     private Collection<AnalysisBoard> createFutureBoards(Set<String> moves) {
         return moves.stream().map(move -> {
-            Board deepCopy = board.copy(false, board.getCurrentMove());
+            Board deepCopy = board.copy(false);
             deepCopy.move(move, board.isWhiteToMove());
-            return new AnalysisBoard(deepCopy, depth - 1, highestAdvantageWhite, highestAdvantageBlack);
+            return new AnalysisBoard(deepCopy, depth - 1);
         }).collect(Collectors.toList());
     }
 }

@@ -2,6 +2,7 @@ package com.example.chessserver3.service;
 
         import com.example.chessserver3.model.board.AnalysisBoard;
         import com.example.chessserver3.model.board.Board;
+        import com.example.chessserver3.model.board.Move;
         import com.example.chessserver3.model.board.Piece;
         import com.example.chessserver3.repository.BoardRepository;
         import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +26,11 @@ public class AutoMoveService {
 
     @Async
     public void autoMove(final Board board, final boolean white) {
-        int moves = board.getPieces().values().stream()
-                .filter(piece -> piece.isWhite() == board.isWhiteToMove()).map(Piece::getMoves)
-                .flatMap(Set::stream).collect(Collectors.toSet()).size();
         ForkJoinPool commonPool = ForkJoinPool.commonPool();
-        AnalysisBoard analysisBoard = new AnalysisBoard(board, 1, 0, 0);
+        AnalysisBoard analysisBoard = new AnalysisBoard(board, 1);
         Board bestBoard = commonPool.invoke(analysisBoard);
         String moveCode = bestBoard.getHistory().get(board.getCurrentMove() + 1).getMoveCode();
+        //System.out.println(bestBoard.getHistory().stream().map(Move::getMoveString).collect(Collectors.toList()));
         board.move(moveCode, white);
         boardRepository.update(board);
         template.convertAndSend("/board/" + board.getId(), "update");

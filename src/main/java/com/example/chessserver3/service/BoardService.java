@@ -3,6 +3,7 @@ package com.example.chessserver3.service;
 import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.board.Board;
+import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,7 @@ public class BoardService {
                 false,
                 false,
                 false,
-                castle);
+                new HashMap<>(castle));
         boardRepository.create(board);
         userService.addGameToUser(player.getId(), board.getId());
         return board;

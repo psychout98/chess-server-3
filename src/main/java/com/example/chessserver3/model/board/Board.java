@@ -101,7 +101,7 @@ public class Board {
     }
 
     public Board copy(boolean shallow, int currentMove) {
-        return new Board(null, null, boardKeyString, currentMove, new ArrayList<>(history), shallow, checkmate, stalemate, castle);
+        return new Board(null, null, boardKeyString, currentMove, new ArrayList<>(history), shallow, checkmate, stalemate, new HashMap<>(castle));
     }
 
     public int calculateAdvantage() {

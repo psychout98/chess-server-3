@@ -1,6 +1,7 @@
 package com.example.chessserver3.service;
 
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.example.chessserver3.model.board.AnalysisBoard;
 import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.repository.BoardRepository;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,7 +40,9 @@ public class AutoMoveService {
 //        Board bestBoard = commonPool.invoke(analysisBoard);
 //        String moveCode = moves;
         List<Move> moves = board.getMoves().values().stream().filter(Move::isValid).toList();
-        Move bestMove = findBestMove(moves, 1, board.getBoardKeyString(), board.isWhiteToMove());
+        ForkJoinPool commonPool = ForkJoinPool.commonPool();
+        AnalysisBoard analysisBoard = new AnalysisBoard(moves, 1, board.getBoardKeyString(), board.isWhiteToMove());
+        Move bestMove = commonPool.invoke(analysisBoard);
         board.move(bestMove.getMoveCode());
         boardRepository.update(board);
         template.convertAndSend("/board/" + board.getId(), "update");

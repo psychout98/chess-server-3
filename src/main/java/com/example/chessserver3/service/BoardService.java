@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 
@@ -117,8 +118,9 @@ public class BoardService {
     public Board getBoardAtMove(String boardId, int moveNumber) {
         Board board = getBoard(boardId);
         if (board.getHistory().size() - 1 != moveNumber) {
-            board.setBoardKey(board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
-            board.update();
+            board.setBoardKey(Board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
+            board.setMoves(Collections.emptyMap());
+            board.setCheck(false);
         }
         return board;
     }

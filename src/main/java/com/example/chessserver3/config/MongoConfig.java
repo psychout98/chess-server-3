@@ -37,15 +37,11 @@ public class MongoConfig {
         MongoClientSettings settings = MongoClientSettings.builder()
                 .retryWrites(true)
                 .applyConnectionString(new ConnectionString(connectionString))
-                .applyToConnectionPoolSettings((ConnectionPoolSettings.Builder builder) -> {
-                    builder.maxSize(100)
-                            .minSize(5)
-                            .maxConnectionLifeTime(30, TimeUnit.MINUTES)
-                            .maxConnectionIdleTime(10000, TimeUnit.MILLISECONDS);
-                })
-                .applyToSocketSettings(builder -> {
-                    builder.connectTimeout(2000, TimeUnit.MILLISECONDS);
-                })
+                .applyToConnectionPoolSettings((ConnectionPoolSettings.Builder builder) -> builder.maxSize(100)
+                        .minSize(5)
+                        .maxConnectionLifeTime(30, TimeUnit.MINUTES)
+                        .maxConnectionIdleTime(10000, TimeUnit.MILLISECONDS))
+                .applyToSocketSettings(builder -> builder.connectTimeout(2000, TimeUnit.MILLISECONDS))
                 .serverApi(serverApi)
                 .build();
         return MongoClients.create(settings);

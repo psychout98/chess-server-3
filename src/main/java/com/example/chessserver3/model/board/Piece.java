@@ -1,10 +1,7 @@
 package com.example.chessserver3.model.board;
 
-import com.example.chessserver3.exception.InvalidMoveException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
-
-import java.util.HashMap;
 import java.util.Set;
 
 @Getter
@@ -18,11 +15,6 @@ public abstract class Piece {
     private Set<String> moves;
     @JsonIgnore
     private Board board;
-
-    public void move(int[] move) {
-        row = move[0];
-        col = move[1];
-    }
 
     public abstract void generateMoves();
 

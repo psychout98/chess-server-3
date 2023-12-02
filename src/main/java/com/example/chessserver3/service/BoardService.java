@@ -49,7 +49,7 @@ public class BoardService {
                 .boardKeyString(boardKeyString)
                 .pieces(new HashMap<>())
                 .moves(new HashMap<>())
-                .history(List.of(firstMove))
+                .history(new ArrayList<>(List.of(firstMove)))
                 .castle(new HashMap<>(castle))
                 .shallow(false)
                 .whiteToMove(true)

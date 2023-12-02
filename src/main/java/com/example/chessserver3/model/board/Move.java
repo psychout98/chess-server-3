@@ -56,13 +56,19 @@ public class Move {
     private boolean attack;
     @BsonIgnore
     @JsonIgnore
-    private int advantage;
+    private int advantage = 0;
     @BsonIgnore
     @JsonIgnore
     private HashMap<String, Boolean> castle;
     @BsonIgnore
     @JsonIgnore
-    private static final int[][][] castleSpaces = {{{0, 1}, {0, 2}, {0, 3}}, {{0, 5}, {0, 6}}, {{7, 1}, {7, 2}, {7, 3}}, {{7, 5}, {7, 6}}};
+    private static final HashMap<String, int[][]> castleSpaces = new HashMap<>();
+    static {
+        castleSpaces.put("0402", new int[][]{{0, 2}, {0, 3}, {0, 4}});
+        castleSpaces.put("0406", new int[][]{{0, 4}, {0, 5}, {0, 6}});
+        castleSpaces.put("7472", new int[][]{{7, 2}, {7, 3}, {7, 4}});
+        castleSpaces.put("7476", new int[][]{{7, 4}, {7, 5}, {7, 6}});
+    }
 
     public Move(final String boardKeyString, final String moveCode, final Move lastMove, final HashMap<String, Boolean> castle, final int queenIndex) {
         this.valid = true;
@@ -132,25 +138,36 @@ public class Move {
         this.boardKeyString = Board.boardKeyArrayToString(boardKey);
     }
 
-    public void validate(String oldBoardKeyString) {
-        Board copyBoard = Board.builder()
-                .boardKeyString(oldBoardKeyString)
-                .pieces(new HashMap<>())
-//                .moves(new HashMap<>(Map.of(moveCode, this)))
-                .history(List.of(lastMove))
-                .whiteToMove(white)
-                .castle(new HashMap<>(castle))
-                .shallow(true)
-                .build();
-        copyBoard.update();
-        try {
-            copyBoard.move(moveCode);
-            valid = !copyBoard.checkCheck(white);
-        } catch (InvalidMoveException e) {
-            System.out.println(e.getMessage());
+    public List<Move> validate(String oldBoardKeyString, boolean whiteToMove, boolean shallow) {
+        Board copyBoard = Board.builder().moves(Collections.emptyMap()).build();
+        if (white != whiteToMove) {
             valid = false;
+        } else {
+            copyBoard = Board.builder()
+                    .boardKeyString(oldBoardKeyString)
+                    .pieces(new HashMap<>())
+                    .history(new ArrayList<>(List.of(lastMove)))
+                    .whiteToMove(whiteToMove)
+                    .castle(new HashMap<>(castle))
+                    .shallow(shallow)
+                    .build();
+            copyBoard.update();
+            if (castleMove) {
+                valid = copyBoard.getMoves().values().stream()
+                        .filter(move -> white != move.isWhite())
+                        .anyMatch(move -> Arrays.stream(castleSpaces.get(moveCode))
+                                .anyMatch(dest -> move.toRow == dest[0] && move.toCol == dest[1]));
+            }
+            try {
+                copyBoard.move(moveCode);
+                advantage = copyBoard.calculateAdvantage();
+                valid = !copyBoard.checkCheck(white);
+//                System.out.println(advantage + " " + valid);
+            } catch (InvalidMoveException e) {
+                valid = false;
+            }
         }
-//        return copyBoard.getMoves().values().stream().toList();
+        return valid ? copyBoard.getMoves().values().stream().toList() : Collections.emptyList();
     }
 
 

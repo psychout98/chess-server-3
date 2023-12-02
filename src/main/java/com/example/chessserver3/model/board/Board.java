@@ -7,7 +7,6 @@ import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import java.util.*;
-import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -68,8 +67,8 @@ public class Board {
         winner = 0;
         boardKey = boardKeyStringToArray(boardKeyString);
         addPieces();
-        check = checkCheck(whiteToMove);
         addMoves();
+        check = checkCheck(whiteToMove);
         checkmate = moves.values().stream().filter(Move::isValid).collect(Collectors.toSet()).isEmpty();
         stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
         winner = stalemate ? 3 : (checkmate ? (whiteToMove ? 2 : 1) : 0);
@@ -151,7 +150,7 @@ public class Board {
 
     public void validateMoves() {
         for (Move move : moves.values()) {
-            move.validate(boardKeyString);
+            move.validate(boardKeyString, whiteToMove, true);
         }
     }
 
@@ -164,7 +163,7 @@ public class Board {
     }
 
     public boolean checkCheck(boolean white) {
-        return moves.values().stream().filter(Move::isValid)
+        return moves.values().stream().filter(move -> move.isWhite() != white)
                 .anyMatch(move -> keyAtSpace(move.getToRow(), move.getToCol()).contains(white ? "wk" : "bk"));
     }
 
@@ -190,8 +189,6 @@ public class Board {
             checkCastles(move.getMovingPiece());
             update();
         } else {
-//            System.out.println(boardKeyString);
-//            System.out.println(moves.values().stream().map(Move::getMoveCode).collect(Collectors.toSet()));
             throw new InvalidMoveException("Invalid move");
         }
     }

@@ -1,5 +1,6 @@
 package com.example.chessserver3.service;
 
+import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.repository.BoardRepository;
@@ -9,7 +10,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @EnableAsync
@@ -32,13 +35,52 @@ public class AutoMoveService {
 //        AnalysisBoard analysisBoard = new AnalysisBoard(board, 1, 0, 0);
 //        Board bestBoard = commonPool.invoke(analysisBoard);
 //        String moveCode = moves;
-        Optional<Move> move = board.getMoves().values().stream().filter(Move::isValid).findAny();
-        if (move.isPresent()) {
-            board.move(move.get().getMoveCode());
-            boardRepository.update(board);
-            template.convertAndSend("/board/" + board.getId(), "update");
-        }
+        List<Move> moves = board.getMoves().values().stream().filter(Move::isValid).toList();
+        Move bestMove = findBestMove(moves, 1, board.getBoardKeyString(), board.isWhiteToMove());
+        board.move(bestMove.getMoveCode());
+        boardRepository.update(board);
+        template.convertAndSend("/board/" + board.getId(), "update");
         //Thread.currentThread().interrupt();
+    }
+
+    public Move findBestMove(List<Move> moves, int depth, String boardKeyString, boolean whiteToMove) {
+        Move bestMove;
+        Optional<Move> randomMove = moves.stream().findAny();
+        if (randomMove.isPresent()) {
+            bestMove = randomMove.get();
+        } else {
+            throw new InvalidMoveException("No moves");
+        }
+        if (depth > 0) {
+            for (Move move : moves) {
+                List<Move> futureMoves = move.validate(boardKeyString, whiteToMove, false).stream().filter(Move::isValid).toList();
+                Move bestFutureMove = findBestMove(futureMoves, depth - 1, move.getBoardKeyString(), !move.isWhite());
+                if (whiteToMove) {
+                    if (bestFutureMove.getAdvantage() > bestMove.getAdvantage()) {
+                        move.setAdvantage(bestFutureMove.getAdvantage());
+                    }
+                } else {
+                    if (bestFutureMove.getAdvantage() < bestMove.getAdvantage()) {
+                        move.setAdvantage(bestFutureMove.getAdvantage());
+                    }
+                }
+            }
+        }
+        for (Move move : moves) {
+            if (whiteToMove) {
+                if (move.getAdvantage() > bestMove.getAdvantage()) {
+//                    System.out.println(bestMove.getAdvantage() + " " + move.getAdvantage() + " (white)");
+                    bestMove = move;
+                }
+            } else {
+                if (move.getAdvantage() < bestMove.getAdvantage()) {
+//                    System.out.println(bestMove.getAdvantage() + " " + move.getAdvantage() + " (black)");
+                    bestMove = move;
+                }
+            }
+        }
+//        System.out.println(bestMove.getAdvantage() + " " + depth);
+        return bestMove;
     }
 
 }

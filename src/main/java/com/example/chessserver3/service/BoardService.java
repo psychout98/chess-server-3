@@ -6,6 +6,7 @@ import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
+import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.stereotype.Service;
@@ -35,18 +36,26 @@ public class BoardService {
         castle.put("7472", true);
         castle.put("7476", true);
     }
+    private final static Move firstMove = Move.builder()
+            .boardKeyString(boardKeyString)
+            .moveCode("")
+            .moveString("")
+            .build();
 
     public Board createBoard(Player player, Player opponent) {
-        Board board = new Board(
-                player,
-                opponent,
-                boardKeyString,
-                0,
-                null,
-                false,
-                false,
-                false,
-                new HashMap<>(castle));
+        Board board = Board.builder()
+                .id(new ObjectId().toHexString())
+                .white(player)
+                .black(opponent)
+                .boardKeyString(boardKeyString)
+                .pieces(new HashMap<>())
+                .moves(new HashMap<>())
+                .history(new ArrayList<>(List.of(firstMove)))
+                .castle(new HashMap<>(castle))
+                .shallow(false)
+                .whiteToMove(true)
+                .build();
+        board.update();
         boardRepository.create(board);
         userService.addGameToUser(player.getId(), board.getId());
         return board;
@@ -69,7 +78,7 @@ public class BoardService {
     public Board getBoard(String boardId) {
         Board board = boardRepository.findById(boardId);
         if (board != null) {
-            board.updateBoard();
+            board.update();
             return board;
         } else {
             throw new BoardNotFoundException("Board id=" + boardId + " not found");
@@ -87,21 +96,17 @@ public class BoardService {
                 throw new InvalidMoveException("Invalid Id");
             }
         } else {
-            if (Objects.equals(board.getWhite().getId(), player.getId())) {
-                board.move(moveCode, true);
-            } else if (Objects.equals(board.getBlack().getId(), player.getId())) {
-                board.move(moveCode, false);
-            } else {
+            if (Objects.equals(board.getWhite().getId(), player.getId()) || Objects.equals(board.getBlack().getId(), player.getId())) {
+                board.move(moveCode);
+            }else {
                 throw new InvalidMoveException("Invalid Id");
             }
         }
         boardRepository.update(board);
         if (!board.isCheckmate()) {
             try {
-                if (Objects.equals(board.getWhite().getName(), "computer")) {
-                    autoMoveService.autoMove(board, true);
-                } else if (Objects.equals(board.getBlack().getName(), "computer")) {
-                    autoMoveService.autoMove(board, false);
+                if (Objects.equals(board.getWhite().getName(), "computer") || Objects.equals(board.getBlack().getName(), "computer")) {
+                    autoMoveService.autoMove(board);
                 }
             } catch (InvalidMoveException e) {
                 System.out.println(e.getMessage());
@@ -112,11 +117,10 @@ public class BoardService {
 
     public Board getBoardAtMove(String boardId, int moveNumber) {
         Board board = getBoard(boardId);
-        if (board.getCurrentMove() != moveNumber) {
-            board.setBoardKey(board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
-            board.setCurrentMove(moveNumber);
+        if (board.getHistory().size() - 1 != moveNumber) {
+            board.setBoardKey(Board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
+            board.setMoves(Collections.emptyMap());
             board.setCheck(false);
-            board.setShallow(true);
         }
         return board;
     }

@@ -4,7 +4,7 @@ import com.example.chessserver3.exception.InvalidMoveException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Set;
 
 @Getter
@@ -15,41 +15,34 @@ public abstract class Piece {
     private int row;
     private int col;
     private boolean white;
-    private Set<Move> moves;
-    private boolean shallow;
+    private Set<String> moves;
     @JsonIgnore
     private Board board;
 
     public void move(int[] move) {
-        if (moves.stream().anyMatch(m -> Arrays.equals(m.getDestination(), move))) {
-            row = move[0];
-            col = move[1];
-        } else {
-            throw new InvalidMoveException(String.format("Invalid move %s%s%s%s", row, col, move[0], move[1]));
-        }
+        row = move[0];
+        col = move[1];
     }
 
     public abstract void generateMoves();
 
+    @JsonIgnore
     public abstract int getPoints();
 
+    public void addMove(String move) {
+        moves.add(move);
+    }
 
     public void addMove(int[] move) {
-        addMove(move, true);
-    }
-
-    public void addMove(int[] move, boolean attack) {
-        addMove(new Move(String.format("%s%s%s%s", row, col, move[0], move[1]), null, null, move, attack));
-    }
-    
-    public void addMove(Move move) {
-        if (isValidMove(move)) {
-            moves.add(move);
-        }
+        addMove(String.format("%s%s%s%s", row, col, move[0], move[1]));
     }
 
     public void addMoves(Set<int[]> moves) {
         moves.forEach(this::addMove);
+    }
+
+    public boolean isObstructed(int[] move) {
+        return !board.getBoardKey()[move[0]][move[1]].isEmpty();
     }
 
     public boolean isObstructed(int[] move, boolean isWhite) {
@@ -58,24 +51,6 @@ public abstract class Piece {
 
     public boolean isOnBoard(int[] move) {
         return move[0] < 8 && move[0] >= 0 && move[1] < 8 && move[1] >= 0;
-    }
-
-    public boolean isValidMove(Move move) {
-        if (isOnBoard(move.getDestination()) && !isObstructed(move.getDestination(), white)) {
-            if (!shallow) {
-                Board nextBoard = board.copy(true, board.getHistory().size() - 1);
-                try {
-                    nextBoard.move(move.getMoveCode(), white);
-                    return true;
-                } catch (InvalidMoveException e) {
-                    return false;
-                }
-            } else {
-                return true;
-            }
-        } else {
-            return false;
-        }
     }
 
     public void addRookMoves() {

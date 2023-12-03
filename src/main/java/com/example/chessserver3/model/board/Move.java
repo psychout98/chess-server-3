@@ -49,10 +49,10 @@ public class Move {
     private boolean castleMove;
     @BsonIgnore
     @JsonIgnore
-    private boolean kingKiller;
+    private boolean attack;
     @BsonIgnore
     @JsonIgnore
-    private boolean attack;
+    private boolean checkmate;
     @BsonIgnore
     @JsonIgnore
     private int advantage = 0;
@@ -131,7 +131,6 @@ public class Move {
         this.fromCol = move[1];
         this.toRow = move[2];
         this.toCol = move[3];
-        this.kingKiller = endKey.contains("k");
         this.castle = castle;
         this.white = startKey.startsWith("w");
         this.boardKeyString = Board.boardKeyArrayToString(boardKey);
@@ -161,12 +160,17 @@ public class Move {
                 copyBoard.move(moveCode);
                 advantage = copyBoard.calculateAdvantage();
                 valid = !copyBoard.checkCheck(white);
-//                System.out.println(advantage + " " + valid);
             } catch (InvalidMoveException e) {
                 valid = false;
             }
         }
-        return valid ? copyBoard.getMoves().values().stream().toList() : Collections.emptyList();
+        if (valid) {
+            List<Move> futureMoves = copyBoard.getMoves().values().stream().filter(Move::isValid).toList();
+            checkmate = true;
+            return futureMoves;
+        } else {
+            return Collections.emptyList();
+        }
     }
 
 

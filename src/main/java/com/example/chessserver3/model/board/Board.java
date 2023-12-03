@@ -100,7 +100,7 @@ public class Board {
     public int calculateAdvantage() {
         int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
         int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
-        return checkmate ? whiteToMove ? -40 : 40 : whitePoints - blackPoints;
+        return checkmate ? whiteToMove ? -100 : 100 : whitePoints - blackPoints;
     }
 
     private void addPieces() {

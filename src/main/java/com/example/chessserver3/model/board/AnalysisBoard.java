@@ -7,49 +7,47 @@ import lombok.Getter;
 import java.util.*;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Getter
 @AllArgsConstructor
 public class AnalysisBoard extends RecursiveTask<Move> {
 
-    private List<Move> moves;
+    private Move lastMove;
+    private Map<String, Move> moves;
     private int depth;
     private String boardKeyString;
     private boolean whiteToMove;
 
+
     @Override
     protected Move compute() {
-        Move bestMove;
-        Optional<Move> randomMove = moves.stream().findAny();
-        if (randomMove.isPresent()) {
-            bestMove = randomMove.get();
-        } else {
-            throw new InvalidMoveException("No moves");
-        }
+        Move bestMove = lastMove;
         if (depth > 0) {
             Collection<AnalysisBoard> analysisBoards = new ArrayList<>();
-            for (Move move : moves) {
-                List<Move> futureMoves = move.validate(boardKeyString, whiteToMove, false).stream().filter(Move::isValid).toList();
-                analysisBoards.add(new AnalysisBoard(futureMoves, depth - 1, move.getBoardKeyString(), !move.isWhite()));
+            for (Move move : moves.values()) {
+                 Map<String, Move> futureMoves = move.validate(boardKeyString, whiteToMove, false)
+                         .stream().filter(Move::isValid)
+                         .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
+                analysisBoards.add(new AnalysisBoard(move, futureMoves, depth - 1, move.getBoardKeyString(), !move.isWhite()));
             }
-            Set<Move> futureMoves = ForkJoinTask.invokeAll(analysisBoards)
+            List<Move> futureMoves = ForkJoinTask.invokeAll(analysisBoards)
                     .stream()
                     .map(ForkJoinTask::join)
-                    .collect(Collectors.toSet());
+                    .toList();
             for (Move move : futureMoves) {
-                if (whiteToMove) {
-                    if (move.getAdvantage() > bestMove.getAdvantage()) {
-                        move.setAdvantage(move.getAdvantage());
-                    }
-                } else {
-                    if (move.getAdvantage() < bestMove.getAdvantage()) {
-                        move.setAdvantage(move.getAdvantage());
-                    }
+                Move originalMove = moves.get(move.getLastMove().getMoveCode());
+                if (originalMove != null) {
+                    originalMove.setAdvantage(move.getAdvantage());
                 }
             }
         }
-        for (Move move : moves) {
+        Optional<Move> randomMove = moves.values().stream().findAny();
+        if (randomMove.isPresent()) {
+            bestMove = randomMove.get();
+        }
+        for (Move move : moves.values()) {
             if (whiteToMove) {
                 if (move.getAdvantage() > bestMove.getAdvantage()) {
                     bestMove = move;

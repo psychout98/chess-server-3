@@ -19,7 +19,7 @@ public class AnalysisBoard extends RecursiveTask<Move> {
     private int depth;
     private String boardKeyString;
     private boolean whiteToMove;
-
+    private static final Random random = new Random();
 
     @Override
     protected Move compute() {
@@ -43,9 +43,11 @@ public class AnalysisBoard extends RecursiveTask<Move> {
                 }
             }
         }
-        Optional<Move> randomMove = moves.values().stream().findAny();
-        if (randomMove.isPresent()) {
-            bestMove = randomMove.get();
+        if (!moves.isEmpty()) {
+            Move randomMove = moves.values().stream().toList().get(random.nextInt(moves.size() ));
+            if (randomMove != null) {
+                bestMove = randomMove;
+            }
         }
         for (Move move : moves.values()) {
             if (whiteToMove) {

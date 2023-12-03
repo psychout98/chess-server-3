@@ -58,6 +58,9 @@ public class Move {
     private int advantage = 0;
     @BsonIgnore
     @JsonIgnore
+    private int futures = 0;
+    @BsonIgnore
+    @JsonIgnore
     private HashMap<String, Boolean> castle;
     @BsonIgnore
     @JsonIgnore
@@ -159,6 +162,7 @@ public class Move {
             try {
                 copyBoard.move(moveCode);
                 advantage = copyBoard.calculateAdvantage();
+                futures = copyBoard.getMoves().size();
                 valid = !copyBoard.checkCheck(white);
             } catch (InvalidMoveException e) {
                 valid = false;

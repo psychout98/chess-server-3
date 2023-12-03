@@ -27,17 +27,17 @@ public class AutoMoveService {
     private SimpMessagingTemplate template;
 
     @Async
-    public void autoMove(final Board board, int attempt) {
+    public void autoMove(final Board board, int depth) {
         try {
             Map<String, Move> moves = board.getMoves().values().stream().filter(Move::isValid)
                     .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
             ForkJoinPool commonPool = ForkJoinPool.commonPool();
-            AnalysisBoard analysisBoard = new AnalysisBoard(board.getHistory().get(board.getHistory().size() - 1), moves, 2, board.getBoardKeyString(), board.isWhiteToMove());
+            AnalysisBoard analysisBoard = new AnalysisBoard(board.getHistory().get(board.getHistory().size() - 1), moves, depth, board.getBoardKeyString(), board.isWhiteToMove());
             Move bestMove = commonPool.invoke(analysisBoard);
             board.move(bestMove.getMoveCode());
         } catch (Exception e) {
-            if (attempt < 5) {
-                autoMove(board, attempt + 1);
+            if (depth > 0) {
+                autoMove(board, depth - 1);
             } else {
                 board.resign(board.isWhiteToMove());
             }

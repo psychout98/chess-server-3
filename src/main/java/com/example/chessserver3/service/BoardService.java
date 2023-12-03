@@ -105,7 +105,7 @@ public class BoardService {
         if (!board.isCheckmate()) {
             try {
                 if (Objects.equals(board.getWhite().getName(), "computer") || Objects.equals(board.getBlack().getName(), "computer")) {
-                    autoMoveService.autoMove(board, 0);
+                    autoMoveService.autoMove(board, 2);
                 }
             } catch (InvalidMoveException e) {
                 System.out.println(e.getMessage());

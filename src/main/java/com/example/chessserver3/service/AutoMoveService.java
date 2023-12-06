@@ -1,5 +1,6 @@
 package com.example.chessserver3.service;
 
+import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.board.AnalysisBoard;
 import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.Move;
@@ -10,11 +11,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @EnableAsync
@@ -27,23 +25,31 @@ public class AutoMoveService {
     private SimpMessagingTemplate template;
 
     @Async
-    public void autoMove(final Board board, int depth) {
-        try {
-            Map<String, Move> moves = board.getMoves().values().stream().filter(Move::isValid)
-                    .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
-            ForkJoinPool commonPool = ForkJoinPool.commonPool();
-            AnalysisBoard analysisBoard = new AnalysisBoard(board.getHistory().get(board.getHistory().size() - 1), moves, depth, board.getBoardKeyString(), board.isWhiteToMove());
-            Move bestMove = commonPool.invoke(analysisBoard);
-            board.move(bestMove.getMoveCode());
-        } catch (Exception e) {
-            if (depth > 0) {
-                autoMove(board, depth - 1);
-            } else {
-                board.resign(board.isWhiteToMove());
-            }
-        }
+    public void autoMove(final Board board, final int depth) {
+        board.move(findBestMove(board, depth).getMoveCode());
         boardRepository.update(board);
         template.convertAndSend("/board/" + board.getId(), "update");
+    }
+
+    private Move findBestMove(final Board board, final int depth) {
+        if (board.getHistory().size() < 2) {
+            throw new InvalidMoveException("Cannot generate futures before move 2");
+        }
+        Move twoMovesAgo = board.getHistory().get(board.getHistory().size() - 2);
+        Move previousMove = board.getHistory().get(board.getHistory().size() - 1);
+        AnalysisBoard analysisBoard = AnalysisBoard.builder()
+                .depth(depth)
+                .oldBoardKeyString(twoMovesAgo.getBoardKeyString())
+                .previousMove(previousMove)
+                .root(true)
+                .build();
+        analysisBoard.generateFutures();
+        if (analysisBoard.getPreviousMove().isValid()) {
+            ForkJoinPool commonPool = ForkJoinPool.commonPool();
+            return commonPool.invoke(analysisBoard);
+        } else {
+            throw new InvalidMoveException("Invalid base move " + analysisBoard.getPreviousMove().getMoveString());
+        }
     }
 
 }

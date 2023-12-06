@@ -2,6 +2,7 @@ package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidKeyException;
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
@@ -33,29 +34,11 @@ public class Board {
     private boolean stalemate;
     private Map<String, Move> moves;
     private List<Move> history;
+    @BsonIgnore
+    @JsonIgnore
     private boolean shallow;
-    private HashMap<String, Boolean> castle;
+    private Castle castle;
     private int winner;
-    @BsonIgnore
-    private static final HashMap<String, String> castleRookMoveCode = new HashMap<>();
-    @BsonIgnore
-    public final static HashMap<String, String> castleMoveString = new HashMap<>();
-    @BsonIgnore
-    public final static HashMap<String, int[]> castleRookMove = new HashMap<>();
-    static {
-        castleRookMove.put("0402", new int[]{0, 0, 0, 3});
-        castleRookMove.put("0406", new int[]{0, 7, 0, 5});
-        castleRookMove.put("7472", new int[]{7, 0, 7, 3});
-        castleRookMove.put("7476", new int[]{7, 7, 7, 5});
-        castleRookMoveCode.put("0402", "0003");
-        castleRookMoveCode.put("0406", "0705");
-        castleRookMoveCode.put("7472", "7073");
-        castleRookMoveCode.put("7476", "7775");
-        castleMoveString.put("0402", "O-O-O");
-        castleMoveString.put("0406", "O-O");
-        castleMoveString.put("7472", "O-O-O");
-        castleMoveString.put("7476", "O-O");
-    }
 
     public void resign(boolean white) {
         winner = white ? 2 : 1;
@@ -73,6 +56,7 @@ public class Board {
         stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
         winner = stalemate ? 3 : (checkmate ? (whiteToMove ? 2 : 1) : 0);
     }
+
 
     public static String[][] boardKeyStringToArray(String boardKeyString) {
         String[][] boardKey = new String[8][8];
@@ -141,7 +125,7 @@ public class Board {
         moves = pieces.values().stream()
                 .map(Piece::getMoves)
                 .flatMap(Set::stream)
-                .map(moveCode -> new Move(boardKeyString, moveCode, history.get(history.size() - 1), castle, getQueenIndex()))
+                .map(moveCode -> new Move(whiteToMove, boardKeyString, moveCode, history.get(history.size() - 1), castle.copy(), getQueenIndex()))
                 .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
         if (!shallow) {
             validateMoves();
@@ -149,8 +133,10 @@ public class Board {
     }
 
     public void validateMoves() {
-        for (Move move : moves.values()) {
-            move.validate(boardKeyString, whiteToMove, true);
+        for (Move move : moves.values().stream().filter(Move::isValid).toList()) {
+            if (!shallow) {
+                move.generateFutures(boardKeyString, whiteToMove);
+            }
         }
     }
 
@@ -180,38 +166,21 @@ public class Board {
             throw new InvalidMoveException(String.format("Move code has incorrect format %s", moveCode));
         }
         Move move = moves.get(moveCode);
-        if (move != null && move.isValid()) {
+        if (move != null && move.isValid() && move.isWhite() == whiteToMove) {
             boardKeyString = move.getBoardKeyString();
-            if (!shallow) {
-                history.add(move);
-            }
+            history.add(move);
             whiteToMove = !whiteToMove;
-            checkCastles(move.getMovingPiece());
+            castle.checkCastles(move.getMovingPiece());
+            shallow = true;
             update();
         } else {
-            throw new InvalidMoveException("Invalid move");
+            System.out.println(history.get(history.size() - 1));
+            throw new InvalidMoveException("Invalid move: " + moveCode);
         }
     }
 
     public String keyAtSpace(int row, int col) {
         return boardKey[row][col];
-    }
-
-    private void checkCastles(String key) {
-        switch (key) {
-            case "wk" -> {
-                castle.put("0402", false);
-                castle.put("0406", false);
-            }
-            case "bk" -> {
-                castle.put("7472", false);
-                castle.put("7476", false);
-            }
-            case "wr1" -> castle.put("0402", false);
-            case "wr2" -> castle.put("0406", false);
-            case "br1" -> castle.put("7472", false);
-            case "br2" -> castle.put("7476", false);
-        }
     }
 
 
@@ -243,5 +212,4 @@ public class Board {
         }
         return false;
     }
-
 }

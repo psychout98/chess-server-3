@@ -125,7 +125,7 @@ public class Board {
         moves = pieces.values().stream()
                 .map(Piece::getMoves)
                 .flatMap(Set::stream)
-                .map(moveCode -> new Move(whiteToMove, boardKeyString, moveCode, history.get(history.size() - 1), castle.copy(), getQueenIndex()))
+                .map(moveCode -> new Move(whiteToMove, boardKeyString, history.get(history.size() - 1).getBoardKeyString(), moveCode, history.get(history.size() - 1), castle.copy(), getQueenIndex()))
                 .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
         if (!shallow) {
             validateMoves();
@@ -135,7 +135,7 @@ public class Board {
     public void validateMoves() {
         for (Move move : moves.values().stream().filter(Move::isValid).toList()) {
             if (!shallow) {
-                move.generateFutures(boardKeyString, whiteToMove);
+                move.generateFutures();
             }
         }
     }
@@ -150,7 +150,7 @@ public class Board {
 
     public boolean checkCheck(boolean white) {
         return moves.values().stream().filter(move -> move.isWhite() != white)
-                .anyMatch(move -> keyAtSpace(move.getToRow(), move.getToCol()).contains(white ? "wk" : "bk"));
+                .anyMatch(move -> keyAtSpace(move.getMove()[2], move.getMove()[3]).contains(white ? "wk" : "bk"));
     }
 
 

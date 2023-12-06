@@ -5,8 +5,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Knight extends Piece {
-
-    private static final int points = 3;
     private static final int[][] baseMoves = {{1, 2}, {2, 1}, {2, -1}, {1, -2}, {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}};
 
     public Knight(int row, int col, boolean white, Board board) {
@@ -19,10 +17,5 @@ public class Knight extends Piece {
                 .filter(this::isOnBoard)
                 .filter(move -> !isObstructed(move, isWhite()))
                 .collect(Collectors.toSet()));
-    }
-
-    @Override
-    public int getPoints() {
-        return points;
     }
 }

@@ -7,8 +7,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class King extends Piece {
-
-    private static final int points = 100;
     private static final int[][] baseMoves = {{0, 1}, {0, -1}, {1, 1}, {1, 0}, {1, -1}, {-1, 1}, {-1, 0}, {-1, -1}};
 
     public King(int row, int col, boolean white, Board board) {
@@ -26,11 +24,6 @@ public class King extends Piece {
                 addMove(key);
             }
         });
-    }
-
-    @Override
-    public int getPoints() {
-        return points;
     }
 
 }

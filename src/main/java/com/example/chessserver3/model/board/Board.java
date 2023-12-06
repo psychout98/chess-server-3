@@ -10,7 +10,6 @@ import org.bson.codecs.pojo.annotations.BsonIgnore;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Builder
 @Getter
@@ -81,13 +80,8 @@ public class Board {
         return boardKeyString.toString();
     }
 
-    public int calculateAdvantage() {
-        int whitePoints = pieces.values().stream().filter(Piece::isWhite).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
-        int blackPoints = pieces.values().stream().filter(piece -> !piece.isWhite()).flatMapToInt(piece -> IntStream.of(piece.getPoints())).sum();
-        return checkmate ? whiteToMove ? -100 : 100 : whitePoints - blackPoints;
-    }
-
     private void addPieces() {
+        pieces = new HashMap<>();
         for (int i=0; i<8; i++) {
             for (int j=0; j<8; j++) {
                 addPiece(boardKey[i][j], i, j);
@@ -127,12 +121,6 @@ public class Board {
                 .flatMap(Set::stream)
                 .map(moveCode -> new Move(whiteToMove, boardKeyString, history.get(history.size() - 1).getBoardKeyString(), moveCode, history.get(history.size() - 1), castle.copy(), getQueenIndex()))
                 .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
-        if (!shallow) {
-            validateMoves();
-        }
-    }
-
-    public void validateMoves() {
         for (Move move : moves.values().stream().filter(Move::isValid).toList()) {
             if (!shallow) {
                 move.generateFutures();
@@ -174,7 +162,6 @@ public class Board {
             shallow = true;
             update();
         } else {
-            System.out.println(history.get(history.size() - 1));
             throw new InvalidMoveException("Invalid move: " + moveCode);
         }
     }

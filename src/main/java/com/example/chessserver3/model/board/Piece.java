@@ -18,9 +18,6 @@ public abstract class Piece {
 
     public abstract void generateMoves();
 
-    @JsonIgnore
-    public abstract int getPoints();
-
     public void addMove(String move) {
         moves.add(move);
     }

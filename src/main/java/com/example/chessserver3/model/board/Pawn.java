@@ -3,8 +3,6 @@ package com.example.chessserver3.model.board;
 import java.util.HashSet;
 
 public class Pawn extends Piece{
-
-    private static final int points = 1;
     public Pawn(int row, int col, boolean white, Board board) {
         super(row, col, white, new HashSet<>(), board);
     }
@@ -30,10 +28,5 @@ public class Pawn extends Piece{
         if (isOnBoard(attackLeft) && !isObstructed(attackLeft, isWhite())) {
             addMove(attackLeft);
         }
-    }
-
-    @Override
-    public int getPoints() {
-        return points;
     }
 }

@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
@@ -179,15 +178,12 @@ public class Move {
     public static boolean isEnPassant(int[] move, int[] lastMove, String lastMoveKey, int direction) {
         boolean lastMovePawn = lastMoveKey.contains("p");
         boolean lastMovePushTwo = lastMove[2] - lastMove[0] == -2 * direction;
-        boolean lastMoveAttackable = lastMove[2] + direction == move[0] && lastMove[3] == move[1];
-        return lastMovePawn && lastMovePushTwo && lastMoveAttackable;
+        boolean lastMoveVulnerable = lastMove[2] + direction == move[0] && lastMove[3] == move[1];
+        return lastMovePawn && lastMovePushTwo && lastMoveVulnerable;
     }
 
     private void calculateAdvantage(int depth) {
         if (depth > 0) {
-            if (futures.isEmpty()) {
-                generateFutures();
-            }
             Move bestFuture = findBestFuture(depth);
             if (bestFuture == null) {
                 advantage = white ? 100 : -100;
@@ -223,13 +219,16 @@ public class Move {
     }
 
     public Move findBestFuture(int depth) {
-        System.out.println(futures);
+        if (futures.isEmpty()) {
+            generateFutures();
+        }
+        futures.forEach(Move::generateFutures);
+        futures.removeIf(future -> !future.valid);
         if (futures.isEmpty()) {
             return null;
         } else {
             if (depth > 3) {
                 futures.forEach(future -> future.calculateAdvantage(2));
-                futures.removeIf(future -> !future.valid);
                 for (int i=3; i<depth; i++) {
                     pruneFutures();
                     for (Move future : futures) {
@@ -238,7 +237,6 @@ public class Move {
                 }
             } else {
                 futures.forEach(future -> future.calculateAdvantage(depth - 1));
-                futures.removeIf(future -> !future.valid);
             }
             if (futures.isEmpty()) {
                 return null;

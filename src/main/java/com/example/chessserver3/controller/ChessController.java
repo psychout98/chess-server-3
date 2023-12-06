@@ -42,10 +42,15 @@ public class ChessController {
     }
 
     @PostMapping("/board")
-    public ResponseEntity<BoardResponse> createBoard(HttpSession session, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName, @RequestParam(value = "opponentName", required = false) String opponentName, @RequestParam(value = "opponentId", required = false) String opponentId) {
+    public ResponseEntity<BoardResponse> createBoard(HttpSession session,
+                                                     @RequestHeader(value = "playerId", required = false) String playerId,
+                                                     @RequestHeader(value = "playerName", required = false) String playerName,
+                                                     @RequestParam(value= "white") boolean white,
+                                                     @RequestParam(value = "opponentName", required = false) String opponentName,
+                                                     @RequestParam(value = "opponentId", required = false) String opponentId) {
         Player player = new Player(playerName == null ? "anonymous" : playerName.toLowerCase(), playerId == null ? session.getId() : playerId);
         Player opponent = opponentName == null ? null : new Player(opponentName, opponentId);
-        return new ResponseEntity<>(new BoardResponse(player, boardService.createBoard(player, opponent)), HttpStatus.OK);
+        return new ResponseEntity<>(new BoardResponse(player, boardService.createBoard(white ? player : opponent, white ? opponent : player)), HttpStatus.OK);
     }
 
     @GetMapping("/board/{boardId}")

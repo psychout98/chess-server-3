@@ -30,6 +30,9 @@ public class Castle {
     @BsonIgnore
     @JsonIgnore
     public static final HashMap<String, int[][]> castleSpaces = new HashMap<>();
+    @BsonIgnore
+    @JsonIgnore
+    public final static HashMap<String, Boolean> initialValidCastle = new HashMap<>();
     static {
         castleSpaces.put("0402", new int[][]{{0, 2}, {0, 3}, {0, 4}});
         castleSpaces.put("0406", new int[][]{{0, 4}, {0, 5}, {0, 6}});
@@ -51,11 +54,6 @@ public class Castle {
         castleMoveString.put("0406", "O-O");
         castleMoveString.put("7472", "O-O-O");
         castleMoveString.put("7476", "O-O");
-    }
-    @BsonIgnore
-    @JsonIgnore
-    public final static HashMap<String, Boolean> initialValidCastle = new HashMap<>();
-    static {
         initialValidCastle.put("0402", true);
         initialValidCastle.put("0406", true);
         initialValidCastle.put("7472", true);

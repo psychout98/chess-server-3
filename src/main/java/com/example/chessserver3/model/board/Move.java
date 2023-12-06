@@ -223,6 +223,7 @@ public class Move {
     }
 
     public Move findBestFuture(int depth) {
+        System.out.println(futures);
         if (futures.isEmpty()) {
             return null;
         } else {

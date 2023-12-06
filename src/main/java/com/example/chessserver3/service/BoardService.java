@@ -8,6 +8,7 @@ import com.example.chessserver3.model.board.Castle;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
@@ -34,6 +35,7 @@ public class BoardService {
         firstMove.setMoveCode("");
         firstMove.setMoveString("");
     }
+    private static Random random = new Random();
 
     public Board createBoard(Player white, Player black) {
         Board board = Board.builder()
@@ -49,6 +51,10 @@ public class BoardService {
                 .whiteToMove(true)
                 .build();
         board.update();
+        if (white != null && Objects.equals(white.getName(), "computer")) {
+            List<Move> moves = board.getMoves().values().stream().filter(Move::isValid).toList();
+            board.move(moves.get(random.nextInt(moves.size() - 1)).getMoveCode());
+        }
         boardRepository.create(board);
         if (white != null) {
             userService.addGameToUser(white.getId(), board.getId());

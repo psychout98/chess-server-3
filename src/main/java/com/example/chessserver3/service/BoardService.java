@@ -2,7 +2,9 @@ package com.example.chessserver3.service;
 
 import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.example.chessserver3.exception.UnsupportedDepthException;
 import com.example.chessserver3.model.board.Board;
+import com.example.chessserver3.model.board.Castle;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
@@ -25,38 +27,35 @@ public class BoardService {
     private UserService userService;
     @Autowired
     private AutoMoveService autoMoveService;
-
-    private final static String boardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
-
-    private final static HashMap<String, Boolean> castle = new HashMap<>();
+    private final static String initialBoardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2";
+    private final static Move firstMove = new Move();
     static {
-        castle.put("0402", true);
-        castle.put("0406", true);
-        castle.put("7472", true);
-        castle.put("7476", true);
+        firstMove.setBoardKeyString(initialBoardKeyString);
+        firstMove.setMoveCode("");
+        firstMove.setMoveString("");
     }
-    private final static Move firstMove = Move.builder()
-            .boardKeyString(boardKeyString)
-            .moveCode("")
-            .moveString("")
-            .build();
 
-    public Board createBoard(Player player, Player opponent) {
+    public Board createBoard(Player white, Player black) {
         Board board = Board.builder()
                 .id(new ObjectId().toHexString())
-                .white(player)
-                .black(opponent)
-                .boardKeyString(boardKeyString)
+                .white(white)
+                .black(black)
+                .boardKeyString(initialBoardKeyString)
                 .pieces(new HashMap<>())
                 .moves(new HashMap<>())
                 .history(new ArrayList<>(List.of(firstMove)))
-                .castle(new HashMap<>(castle))
+                .castle(Castle.initialCastle())
                 .shallow(false)
                 .whiteToMove(true)
                 .build();
         board.update();
         boardRepository.create(board);
-        userService.addGameToUser(player.getId(), board.getId());
+        if (white != null) {
+            userService.addGameToUser(white.getId(), board.getId());
+        }
+        if (black != null) {
+            userService.addGameToUser(black.getId(), board.getId());
+        }
         return board;
     }
 
@@ -70,7 +69,6 @@ public class BoardService {
         } else {
             throw new InvalidMoveException("Cannot join full game");
         }
-        boardRepository.update(board);
         boardRepository.update(board);
     }
 
@@ -103,15 +101,27 @@ public class BoardService {
         }
         boardRepository.update(board);
         if (!board.isCheckmate()) {
-            try {
-                if (Objects.equals(board.getWhite().getName(), "computer") || Objects.equals(board.getBlack().getName(), "computer")) {
-                    autoMoveService.autoMove(board, 2);
-                }
-            } catch (InvalidMoveException e) {
-                System.out.println(e.getMessage());
+            if (Objects.equals(board.getWhite().getName(), "computer")) {
+                computerMove(board, true);
+            } else if (Objects.equals(board.getBlack().getName(), "computer")) {
+                computerMove(board, false);
             }
         }
         return board;
+    }
+
+    private void computerMove(Board board, boolean white) {
+        String id = white ? board.getWhite().getId() : board.getBlack().getId();
+        try {
+            int depth = Integer.parseInt(id.split("-")[1]);
+            if (depth < 50) {
+                autoMoveService.autoMove(board, depth);
+            } else {
+                throw new UnsupportedDepthException("Depth greater than 3 not yet supported by system");
+            }
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            throw new UnsupportedDepthException("Unsupported or invalid depth provided");
+        }
     }
 
     public Board getBoardAtMove(String boardId, int moveNumber) {

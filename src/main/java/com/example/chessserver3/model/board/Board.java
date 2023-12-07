@@ -44,15 +44,17 @@ public class Board {
     }
 
     public void update() {
-        pieces = new HashMap<>();
-        moves = new HashMap<>();
-        boardKey = boardKeyStringToArray(boardKeyString);
-        addPieces();
-        addMoves();
-        check = checkCheck(whiteToMove);
-        checkmate = moves.values().stream().filter(Move::isValid).collect(Collectors.toSet()).isEmpty();
-        stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
-        winner = stalemate ? 3 : (checkmate ? (whiteToMove ? 2 : 1) : 0);
+            pieces = new HashMap<>();
+            moves = new HashMap<>();
+            boardKey = boardKeyStringToArray(boardKeyString);
+        if (winner == 0) {
+            addPieces();
+            addMoves();
+            check = checkCheck(whiteToMove);
+            checkmate = moves.values().stream().filter(Move::isValid).collect(Collectors.toSet()).isEmpty();
+            stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
+            winner = stalemate ? 3 : (checkmate ? (whiteToMove ? 2 : 1) : 0);
+        }
     }
 
 

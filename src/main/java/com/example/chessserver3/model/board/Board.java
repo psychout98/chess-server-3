@@ -46,7 +46,6 @@ public class Board {
     public void update() {
         pieces = new HashMap<>();
         moves = new HashMap<>();
-        winner = 0;
         boardKey = boardKeyStringToArray(boardKeyString);
         addPieces();
         addMoves();
@@ -121,8 +120,8 @@ public class Board {
                 .flatMap(Set::stream)
                 .map(moveCode -> new Move(whiteToMove, boardKeyString, history.get(history.size() - 1).getBoardKeyString(), moveCode, history.get(history.size() - 1), castle.copy(), getQueenIndex()))
                 .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
-        for (Move move : moves.values().stream().filter(Move::isValid).toList()) {
-            if (!shallow) {
+        if (!shallow) {
+            for (Move move : moves.values().stream().filter(Move::isValid).toList()) {
                 move.generateFutures();
             }
         }

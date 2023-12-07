@@ -107,7 +107,7 @@ public class BoardService {
         }
         boardRepository.update(board);
         if (Objects.equals(board.getWhite().getName(), "computer")) {
-                computerMove(board, true);
+            computerMove(board, true);
         } else if (Objects.equals(board.getBlack().getName(), "computer")) {
             computerMove(board, false);
         }

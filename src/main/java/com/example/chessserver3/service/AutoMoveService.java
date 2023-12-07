@@ -23,13 +23,8 @@ public class AutoMoveService {
 
     @Async
     public void autoMove(final Board board, final int depth) {
-        if (depth < 4) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        board.setShallow(false);
+        board.update();
         if (board.getWinner() == 0) {
             board.move(board.getHistory().get(board.getHistory().size() - 1).findBestFuture(depth).getMoveCode());
             boardRepository.update(board);

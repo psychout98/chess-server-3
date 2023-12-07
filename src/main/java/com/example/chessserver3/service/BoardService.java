@@ -8,7 +8,6 @@ import com.example.chessserver3.model.board.Castle;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
@@ -35,7 +34,7 @@ public class BoardService {
         firstMove.setMoveCode("");
         firstMove.setMoveString("");
     }
-    private static Random random = new Random();
+    private final static Random random = new Random();
 
     public Board createBoard(Player white, Player black) {
         Board board = Board.builder()
@@ -47,7 +46,6 @@ public class BoardService {
                 .moves(new HashMap<>())
                 .history(new ArrayList<>(List.of(firstMove)))
                 .castle(Castle.initialCastle())
-                .shallow(false)
                 .whiteToMove(true)
                 .build();
         board.update();
@@ -118,7 +116,7 @@ public class BoardService {
         String id = white ? board.getWhite().getId() : board.getBlack().getId();
         try {
             int depth = Integer.parseInt(id.split("-")[1]);
-            if (depth < 50) {
+            if (depth < 4) {
                 autoMoveService.autoMove(board, depth);
             } else {
                 throw new UnsupportedDepthException("Depth greater than 3 not yet supported by system");

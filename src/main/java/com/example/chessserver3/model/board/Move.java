@@ -48,6 +48,8 @@ public class Move {
     @BsonIgnore
     @JsonIgnore
     private int advantage;
+
+
     @BsonIgnore
     @JsonIgnore
     private static final HashMap<Character, Integer> pointValues = new HashMap<>();
@@ -62,8 +64,8 @@ public class Move {
     @JsonIgnore
     private static Random random = new Random();
 
-    public Move(final boolean whiteToMove, final String boardKeyString, final String oldBoardKeyString, final String moveCode, final Move lastMove, final Castle castle, final int queenIndex) {
-        this.oldBoardKeyString = oldBoardKeyString;
+    public Move(final boolean whiteToMove, final String boardKeyString, final String moveCode, final Move lastMove, final Castle castle, final int queenIndex) {
+        this.oldBoardKeyString = lastMove.boardKeyString;
         this.valid = true;
         this.enPassant = false;
         this.moveCode = moveCode;
@@ -182,13 +184,14 @@ public class Move {
         return lastMovePawn && lastMovePushTwo && lastMoveVulnerable;
     }
 
-    private void calculateAdvantage(int depth) {
-        if (depth > 0) {
-            Move bestFuture = findBestFuture(depth);
-            if (bestFuture == null) {
+    private void calculateAdvantage(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
+        if (!futures.isEmpty() && branchDepth <= maxDepth) {
+            futures.forEach(future -> future.calculateAdvantage(branchDepth + 1, maxDepth, positionMap));
+            Move bestMove = findHighestAdvantage();
+            if (bestMove == null) {
                 advantage = white ? 100 : -100;
             } else {
-                advantage = bestFuture.advantage;
+                advantage = bestMove.advantage;
             }
         } else {
             advantage = 0;
@@ -196,6 +199,9 @@ public class Move {
             for (String key : boardKeys) {
                 advantage += calculatePoints(key);
             }
+        }
+        if (!enPassant && branchDepth > 2) {
+            positionMap.put(boardKeyString, moveCode);
         }
     }
 
@@ -218,31 +224,46 @@ public class Move {
         }
     }
 
-    public Move findBestFuture(int depth) {
+    public boolean mapped(HashMap<String, String> positionMap) {
+        String mappedPosition = positionMap.get(boardKeyString);
+        if (mappedPosition != null) {
+            return mappedPosition.equals(moveCode);
+        } else {
+            return false;
+        }
+    }
+
+    public void buildTree(int branchDepth, int buildDepth, HashMap<String, String> positionMap) {
+        if (branchDepth < buildDepth) {
+            futures.removeIf(future -> future.mapped(positionMap));
+            futures.forEach(Move::generateFutures);
+            futures.removeIf(future -> !future.valid);
+            futures.forEach(future -> future.buildTree(branchDepth + 1, buildDepth, positionMap));
+        }
+    }
+
+    public Move findBestFuture(int maxDepth) {
+        HashMap<String, String> positionMap = new HashMap<>();
         if (futures.isEmpty()) {
             generateFutures();
         }
-        futures.forEach(Move::generateFutures);
-        futures.removeIf(future -> !future.valid);
+        if (maxDepth > 2) {
+            for (int i=2; i<maxDepth; i++) {
+                buildTree(0, i, positionMap);
+                calculateAdvantage(0, i, positionMap);
+                pruneFutures();
+                positionMap = new HashMap<>();
+            }
+            buildTree(0, maxDepth, positionMap);
+            calculateAdvantage(0, maxDepth, positionMap);
+        } else {
+            buildTree(0, maxDepth, positionMap);
+            calculateAdvantage(0, maxDepth, positionMap);
+        }
         if (futures.isEmpty()) {
             return null;
         } else {
-            if (depth > 3) {
-                futures.forEach(future -> future.calculateAdvantage(2));
-                for (int i=3; i<depth; i++) {
-                    pruneFutures();
-                    for (Move future : futures) {
-                        future.recalculateAdvantage(i);
-                    }
-                }
-            } else {
-                futures.forEach(future -> future.calculateAdvantage(depth - 1));
-            }
-            if (futures.isEmpty()) {
-                return null;
-            } else {
-                return findHighestAdvantage();
-            }
+            return findHighestAdvantage();
         }
     }
 
@@ -253,7 +274,6 @@ public class Move {
             Move bestFuture = futures.get(random.nextInt(futures.size()));
             for (Move future : futures) {
                 if (white ? future.advantage < bestFuture.advantage : future.advantage > bestFuture.advantage) {
-//              System.out.println(white + " " + bestFuture.moveString + "(" + bestFuture.advantage + ")" + " " + future.moveString + "(" + future.advantage + ")");
                     bestFuture = future;
                 }
             }
@@ -263,25 +283,12 @@ public class Move {
 
     private void pruneFutures() {
         if (!futures.isEmpty()) {
+            int before = futures.size();
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
                 futures.removeIf(future -> white ? future.advantage > bestFuture.advantage : future.advantage < bestFuture.advantage);
             }
-        }
-    }
-
-    private void recalculateAdvantage(int depth) {
-        if (depth > 1) {
-            futures.forEach(future -> recalculateAdvantage(depth - 1));
-            Move bestFuture = findHighestAdvantage();
-            if (bestFuture == null) {
-                advantage = white ? 100 : -100;
-            } else {
-                advantage = bestFuture.advantage;
-            }
-        } else {
-            futures.forEach(future -> future.calculateAdvantage(1));
-            futures.removeIf(future -> !future.valid);
+//            System.out.println("Pruned " + (before - futures.size()) + " of " + before + " branches");
         }
     }
 

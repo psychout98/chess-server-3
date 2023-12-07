@@ -2,7 +2,6 @@ package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidKeyException;
 import com.example.chessserver3.exception.InvalidMoveException;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
@@ -33,11 +32,10 @@ public class Board {
     private boolean stalemate;
     private Map<String, Move> moves;
     private List<Move> history;
-    @BsonIgnore
-    @JsonIgnore
-    private boolean shallow;
     private Castle castle;
     private int winner;
+    @Builder.Default
+    private boolean shallow = false;
 
     public void resign(boolean white) {
         winner = white ? 2 : 1;
@@ -51,7 +49,7 @@ public class Board {
             addPieces();
             addMoves();
             check = checkCheck(whiteToMove);
-            checkmate = moves.values().stream().filter(Move::isValid).collect(Collectors.toSet()).isEmpty();
+            checkmate = moves.values().stream().filter(Move::isValid).toList().isEmpty();
             stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
             winner = stalemate ? 3 : (checkmate ? (whiteToMove ? 2 : 1) : 0);
         }
@@ -117,15 +115,14 @@ public class Board {
     }
 
     private void addMoves() {
+        Move lastMove = history.get(history.size() - 1);
         moves = pieces.values().stream()
                 .map(Piece::getMoves)
                 .flatMap(Set::stream)
-                .map(moveCode -> new Move(whiteToMove, boardKeyString, history.get(history.size() - 1).getBoardKeyString(), moveCode, history.get(history.size() - 1), castle.copy(), getQueenIndex()))
+                .map(moveCode -> new Move(whiteToMove, boardKeyString, moveCode, lastMove, castle.copy(), getQueenIndex()))
                 .collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
         if (!shallow) {
-            for (Move move : moves.values().stream().filter(Move::isValid).toList()) {
-                move.generateFutures();
-            }
+            moves.values().stream().filter(Move::isValid).forEach(Move::generateFutures);
         }
     }
 
@@ -144,7 +141,7 @@ public class Board {
 
 
     public void move(String moveCode) {
-        if (!shallow && winner != 0) {
+        if (winner != 0) {
             throw new InvalidMoveException("Game is over");
         }
         if (moveCode.length() == 4) {
@@ -160,7 +157,6 @@ public class Board {
             history.add(move);
             whiteToMove = !whiteToMove;
             castle.checkCastles(move.getMovingPiece());
-            shallow = true;
             update();
         } else {
             throw new InvalidMoveException("Invalid move: " + moveCode);

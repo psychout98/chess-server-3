@@ -187,12 +187,13 @@ public class Move {
     private void calculateAdvantage(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
         if (!futures.isEmpty() && branchDepth <= maxDepth) {
             double possibilityFactor = 0.01 * futures.size();
+            double kingFactor = castleMove ? white ? 1 : -1 : movingPiece.contains("k") ? white ? -0.25 : 0.25 : 0;
             futures.forEach(future -> future.calculateAdvantage(branchDepth + 1, maxDepth, positionMap));
             Move bestMove = findHighestAdvantage();
             if (bestMove == null) {
                 advantage = white ? 100 : -100;
             } else {
-                advantage = bestMove.advantage + possibilityFactor;
+                advantage = bestMove.advantage + possibilityFactor + kingFactor;
             }
         } else {
             advantage = 0;
@@ -235,7 +236,7 @@ public class Move {
     }
 
     public void buildTree(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
-        if (branchDepth < maxDepth && (futures.size() < 10 || branchDepth < 2)) {
+        if (branchDepth < maxDepth && (futures.size() < 3 || branchDepth < 3)) {
             futures.removeIf(future -> future.mapped(positionMap));
             futures.forEach(Move::generateFutures);
             futures.removeIf(future -> !future.valid);
@@ -290,12 +291,13 @@ public class Move {
             if (branchDepth < maxDepth - 2) {
                 futures.forEach(future -> future.pruneFutures(branchDepth + 1, maxDepth));
             }
-            int before = futures.size();
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
                 futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + .25 : future.advantage < bestFuture.advantage - .25);
+                if (futures.size() > 10) {
+                    futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + .1 : future.advantage < bestFuture.advantage - .1);
+                }
             }
-//            System.out.println("Pruned " + (before - futures.size()) + " of " + before + " branches at depth " + branchDepth);
         }
     }
 

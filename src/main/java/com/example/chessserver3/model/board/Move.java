@@ -180,7 +180,7 @@ public class Move {
     public static boolean isEnPassant(int[] move, int[] lastMove, String lastMoveKey, int direction) {
         boolean lastMovePawn = lastMoveKey.contains("p");
         boolean lastMovePushTwo = lastMove[2] - lastMove[0] == -2 * direction;
-        boolean lastMoveVulnerable = lastMove[2] + direction == move[0] && lastMove[3] == move[1];
+        boolean lastMoveVulnerable = lastMove[2] + direction == move[2] && lastMove[3] == move[3];
         return lastMovePawn && lastMovePushTwo && lastMoveVulnerable;
     }
 

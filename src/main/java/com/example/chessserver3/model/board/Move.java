@@ -194,6 +194,7 @@ public class Move {
                 advantage = white ? 100 : -100;
             } else {
                 advantage = bestMove.advantage + possibilityFactor + kingFactor;
+                futures.forEach(future -> future.setFutures(new ArrayList<>()));
             }
         } else {
             advantage = 0;
@@ -236,7 +237,7 @@ public class Move {
     }
 
     public void buildTree(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
-        if (branchDepth < maxDepth && (futures.size() < 3 || branchDepth < 3)) {
+        if (branchDepth < maxDepth) {
             futures.removeIf(future -> future.mapped(positionMap));
             futures.forEach(Move::generateFutures);
             futures.removeIf(future -> !future.valid);

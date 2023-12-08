@@ -242,6 +242,7 @@ public class Move {
             futures.forEach(Move::generateFutures);
             futures.removeIf(future -> !future.valid);
             futures.forEach(future -> future.buildTree(branchDepth + 1, maxDepth, positionMap));
+            calculateAdvantage(branchDepth, maxDepth, positionMap);
         }
     }
 
@@ -253,7 +254,6 @@ public class Move {
         if (maxDepth > 2) {
             for (int i=2; i<maxDepth; i++) {
                 buildTree(0, i, positionMap);
-                calculateAdvantage(0, i, positionMap);
                 pruneFutures(0, i);
                 if (futures.size() == 1) {
                     return futures.stream().findFirst().get();
@@ -261,10 +261,8 @@ public class Move {
                 positionMap = new HashMap<>();
             }
             buildTree(0, maxDepth, positionMap);
-            calculateAdvantage(0, maxDepth, positionMap);
         } else {
             buildTree(0, maxDepth, positionMap);
-            calculateAdvantage(0, maxDepth, positionMap);
         }
         if (futures.isEmpty()) {
             return null;

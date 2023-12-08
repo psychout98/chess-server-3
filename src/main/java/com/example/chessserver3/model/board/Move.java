@@ -47,7 +47,7 @@ public class Move {
     private List<Move> futures;
     @BsonIgnore
     @JsonIgnore
-    private int advantage;
+    private double advantage;
 
 
     @BsonIgnore
@@ -186,12 +186,13 @@ public class Move {
 
     private void calculateAdvantage(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
         if (!futures.isEmpty() && branchDepth <= maxDepth) {
+            double possibilityFactor = 0.01 * futures.size();
             futures.forEach(future -> future.calculateAdvantage(branchDepth + 1, maxDepth, positionMap));
             Move bestMove = findHighestAdvantage();
             if (bestMove == null) {
                 advantage = white ? 100 : -100;
             } else {
-                advantage = bestMove.advantage;
+                advantage = bestMove.advantage + possibilityFactor;
             }
         } else {
             advantage = 0;
@@ -200,7 +201,7 @@ public class Move {
                 advantage += calculatePoints(key);
             }
         }
-        if (!enPassant && branchDepth > 2) {
+        if (!enPassant) {
             positionMap.put(boardKeyString, moveCode);
         }
     }
@@ -252,6 +253,9 @@ public class Move {
                 buildTree(0, i, positionMap);
                 calculateAdvantage(0, i, positionMap);
                 pruneFutures();
+                if (futures.size() == 1) {
+                    return futures.stream().findFirst().get();
+                }
                 positionMap = new HashMap<>();
             }
             buildTree(0, maxDepth, positionMap);
@@ -286,9 +290,9 @@ public class Move {
             int before = futures.size();
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
-                futures.removeIf(future -> white ? future.advantage > bestFuture.advantage : future.advantage < bestFuture.advantage);
+                futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + 0.25 : future.advantage < bestFuture.advantage - 0.25);
             }
-//            System.out.println("Pruned " + (before - futures.size()) + " of " + before + " branches");
+            //System.out.println("Pruned " + (before - futures.size()) + " of " + before + " branches");
         }
     }
 

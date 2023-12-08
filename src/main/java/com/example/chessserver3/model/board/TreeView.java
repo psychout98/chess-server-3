@@ -1,12 +1,12 @@
 package com.example.chessserver3.model.board;
 
+import org.apache.logging.log4j.util.PropertySource;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,7 +35,7 @@ public class TreeView extends JFrame implements ActionListener {
 
     public void display() {
         if (move != null) {
-            setTitle(move.getMoveString() + "(" + move.getAdvantage() + ") " + (move.isWhite() ? "black to move" : "white to move"));
+            setTitle(move.getMoveString() + "(" + String.format("%.2f", move.getAdvantage()) + ") " + (move.isWhite() ? "black to move" : "white to move"));
             backPanel.removeAll();
             if (!lastMove.isEmpty()) {
                 backButton = new JButton("go back to " + lastMove.lastElement().getMoveString());
@@ -45,8 +45,8 @@ public class TreeView extends JFrame implements ActionListener {
             buttons = new HashMap<>();
             buttonPanel.removeAll();
             futures = move.getFutures().stream().filter(Move::isValid).collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
-            for (Move future : futures.values()) {
-                JButton futureButton = new JButton(future.getMoveString() + "(" + future.getAdvantage() + ")");
+            for (Move future : futures.values().stream().sorted(Comparator.comparing(Move::getAdvantage)).toList()) {
+                JButton futureButton = new JButton(future.getMoveString() + "(" + String.format("%.2f", future.getAdvantage()) + ")");
                 futureButton.addActionListener(this);
                 buttons.put(future.getMoveCode(), futureButton);
                 buttonPanel.add(futureButton);

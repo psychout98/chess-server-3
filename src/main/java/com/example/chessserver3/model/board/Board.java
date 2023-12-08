@@ -185,14 +185,14 @@ public class Board {
     }
 
     private boolean isThreeFoldRep() {
-        if (history.size() >= 9) {
-            String boardKeyString = history.get(history.size() - 1).getBoardKeyString();
-            for (int i=1; i<3; i++) {
-                if (!Objects.equals(boardKeyString, history.get(history.size() - 1 - 4 * i).getBoardKeyString())) {
-                    return false;
-                }
+        int i = 0;
+        for (Move move : history) {
+            if (Objects.equals(move.getBoardKeyString(), boardKeyString)) {
+                i++;
             }
-            return true;
+            if (i > 2) {
+                return true;
+            }
         }
         return false;
     }

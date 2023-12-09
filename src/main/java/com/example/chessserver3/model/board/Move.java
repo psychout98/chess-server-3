@@ -292,9 +292,11 @@ public class Move {
             }
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
-                futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + .25 : future.advantage < bestFuture.advantage - .25);
-                if (futures.size() > 10) {
-                    futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + .1 : future.advantage < bestFuture.advantage - .1);
+                int i = 1;
+                while (futures.size() > 5 && i < 10) {
+                    double range = Math.pow(0.5, i);
+                    futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + range : future.advantage < bestFuture.advantage - range);
+                    i++;
                 }
             }
         }

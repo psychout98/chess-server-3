@@ -75,20 +75,26 @@ public class Castle {
         return castleMoveCodes.contains(moveCode);
     }
 
-    public void checkCastles(String key) {
-        switch (key) {
-            case "wk" -> {
-                validCastles.put("0402", false);
-                validCastles.put("0406", false);
-            }
-            case "bk" -> {
-                validCastles.put("7472", false);
-                validCastles.put("7476", false);
-            }
-            case "wr1" -> validCastles.put("0402", false);
-            case "wr2" -> validCastles.put("0406", false);
-            case "br1" -> validCastles.put("7472", false);
-            case "br2" -> validCastles.put("7476", false);
+    public void checkCastles(char key, int col) {
+        if (key == 'K') {
+            validCastles.put("7472", false);
+            validCastles.put("7476", false);
+        }
+        if (key == 'k') {
+            validCastles.put("0402", false);
+            validCastles.put("0406", false);
+        }
+        if (key == 'R' && col == 7) {
+            validCastles.put("7476", false);
+        }
+        if (key == 'R' && col == 0) {
+            validCastles.put("7472", false);
+        }
+        if (key == 'r' && col == 7) {
+            validCastles.put("0406", false);
+        }
+        if (key == 'r' && col == 0) {
+            validCastles.put("0402", false);
         }
     }
 }

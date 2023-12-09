@@ -27,12 +27,13 @@ public class BoardService {
     private UserService userService;
     @Autowired
     private AutoMoveService autoMoveService;
-    private final static String initialBoardKeyString = "wr1,wn1,wb1,wq,wk,wb2,wn2,wr2,wp1,wp2,wp3,wp4,wp5,wp6,wp7,wp8,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,bp1,bp2,bp3,bp4,bp5,bp6,bp7,bp8,br1,bn1,bb1,bq,bk,bb2,bn2,br2,";
+    private final static String initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
     private final static Move firstMove = new Move();
     static {
-        firstMove.setBoardKeyString(initialBoardKeyString);
+        firstMove.setFEN(initialFEN);
         firstMove.setMoveCode("");
         firstMove.setMoveString("");
+        firstMove.setKey('x');
     }
     private final static Random random = new Random();
 
@@ -41,8 +42,7 @@ public class BoardService {
                 .id(new ObjectId().toHexString())
                 .white(white)
                 .black(black)
-                .boardKeyString(initialBoardKeyString)
-                .pieces(new HashMap<>())
+                .FEN(initialFEN)
                 .moves(new HashMap<>())
                 .history(new ArrayList<>(List.of(firstMove)))
                 .castle(Castle.initialCastle())
@@ -129,7 +129,7 @@ public class BoardService {
     public Board getBoardAtMove(String boardId, int moveNumber) {
         Board board = getBoard(boardId);
         if (board.getHistory().size() - 1 != moveNumber) {
-            board.setBoardKey(Board.boardKeyStringToArray(board.getHistory().get(moveNumber).getBoardKeyString()));
+            board.setBoardKey(Board.FENtoBoardKey(board.getHistory().get(moveNumber).getFEN()));
             board.setMoves(Collections.emptyMap());
             board.setCheck(false);
         }

@@ -3,11 +3,9 @@ package com.example.chessserver3.model.board;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.*;
 
@@ -50,28 +48,17 @@ public class Move {
     @BsonIgnore
     @JsonIgnore
     private double advantage;
-    @BsonIgnore
-    @JsonIgnore
-    private boolean attack;
-    @BsonIgnore
-    @JsonIgnore
-    private int attacks;
-    @BsonIgnore
-    @JsonIgnore
-    private int attackers;
+
 
     @BsonIgnore
     @JsonIgnore
-    private final static double[] centerPoints = {0.0, 0.1, 0.2, 0.3, 0.3, 0.2, 0.1, 0.0};
-    @BsonIgnore
-    @JsonIgnore
-    private static final HashMap<Character, Double> pointValues = new HashMap<>();
+    private static final HashMap<Character, Integer> pointValues = new HashMap<>();
     static {
-        pointValues.put('q', 9.0);
-        pointValues.put('r', 5.0);
-        pointValues.put('b', 3.0);
-        pointValues.put('n', 3.0);
-        pointValues.put('p', 1.0);
+        pointValues.put('q', 9);
+        pointValues.put('r', 5);
+        pointValues.put('b', 3);
+        pointValues.put('n', 3);
+        pointValues.put('p', 1);
     }
     @BsonIgnore
     @JsonIgnore
@@ -137,7 +124,6 @@ public class Move {
             boardKey[move[0]][move[1]] = "";
             boardKey[move[2]][move[3]] = startKey;
         }
-        this.attack = this.moveString.contains("x");
         this.movingPiece = startKey;
         this.move = move;
         this.boardKeyString = Board.boardKeyArrayToString(boardKey);
@@ -172,8 +158,6 @@ public class Move {
                 }
             }
             futures = new ArrayList<>(copyBoard.getMoves().values());
-            attacks = futures.stream().filter(future -> future.white == white).map(future -> future.attack ? 1 : 0).mapToInt(Integer::intValue).sum();
-            attackers = futures.stream().filter(future -> future.white != white).map(future -> future.attack ? 1 : 0).mapToInt(Integer::intValue).sum();
         } else {
             futures = Collections.emptyList();
         }
@@ -200,33 +184,23 @@ public class Move {
         return lastMovePawn && lastMovePushTwo && lastMoveVulnerable;
     }
 
-    private double calculateFactors() {
-        double possibilityFactor = futures.size();
-        double attackFactor = 0.1 * (attacks - attackers);
-        double kingFactor = castleMove ? 1 : movingPiece.contains("k") ? -0.1 : 0;
-        double enPassantFactor = enPassant ? 1 : 0;
-        return (white ? 1 : -1) * (possibilityFactor + kingFactor + enPassantFactor + attackFactor);
-    }
-
     private void calculateAdvantage(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
-        if (branchDepth <= maxDepth && futures.isEmpty()) {
-            advantage = white ? 100 : -100;
-        } else if (branchDepth <= maxDepth) {
+        if (!futures.isEmpty() && branchDepth <= maxDepth) {
+            double possibilityFactor = 0.01 * futures.size();
+            double kingFactor = castleMove ? white ? 1 : -1 : movingPiece.contains("k") ? white ? -0.25 : 0.25 : 0;
             futures.forEach(future -> future.calculateAdvantage(branchDepth + 1, maxDepth, positionMap));
             Move bestMove = findHighestAdvantage();
             if (bestMove == null) {
                 advantage = white ? 100 : -100;
             } else {
-                advantage = bestMove.advantage + (branchDepth == 0 ? calculateFactors() : 0);
+                advantage = bestMove.advantage + possibilityFactor + kingFactor;
                 futures.forEach(future -> future.setFutures(new ArrayList<>()));
             }
         } else {
             advantage = 0;
-            String[][] boardKey = Board.boardKeyStringToArray(boardKeyString);
-            for (int i=0; i<8; i++) {
-                for (int j=0; j<8; j++) {
-                    advantage += calculatePoints(boardKey[i][j], i, j);
-                }
+            String[] boardKeys = boardKeyString.split(",");
+            for (String key : boardKeys) {
+                advantage += calculatePoints(key);
             }
         }
         if (!enPassant) {
@@ -234,15 +208,15 @@ public class Move {
         }
     }
 
-    private static double calculatePoints(String key, int row, int col) {
+    private static int calculatePoints(String key) {
         if (key.isEmpty() || key.contains("k") || key.contains("x")) {
             return 0;
         } else {
             int multiplier = key.startsWith("w") ? 1 : -1;
             try {
-                Double pointValue = pointValues.get(key.charAt(1));
+                Integer pointValue = pointValues.get(key.charAt(1));
                 if (pointValue != null) {
-                    return (pointValue + centerPoints[row] + centerPoints[col]) * multiplier;
+                    return pointValue * multiplier;
                 } else {
                     return 0;
                 }
@@ -262,16 +236,13 @@ public class Move {
         }
     }
 
-    public void buildTree(int branchDepth, int maxDepth, HashMap<String, String> positionMap, boolean lastIteration) {
+    public void buildTree(int branchDepth, int maxDepth, HashMap<String, String> positionMap) {
         if (branchDepth < maxDepth) {
             futures.removeIf(future -> future.mapped(positionMap));
             futures.forEach(Move::generateFutures);
             futures.removeIf(future -> !future.valid);
-            futures.forEach(future -> future.buildTree(branchDepth + 1, maxDepth, positionMap, false));
+            futures.forEach(future -> future.buildTree(branchDepth + 1, maxDepth, positionMap));
             calculateAdvantage(branchDepth, maxDepth, positionMap);
-            if (branchDepth < maxDepth - 1 && !lastIteration) {
-                pruneFutures();
-            }
         }
     }
 
@@ -282,12 +253,16 @@ public class Move {
         }
         if (maxDepth > 2) {
             for (int i=2; i<maxDepth; i++) {
-                buildTree(0, i, positionMap, false);
+                buildTree(0, i, positionMap);
+                pruneFutures(0, i);
+                if (futures.size() == 1) {
+                    return futures.stream().findFirst().get();
+                }
                 positionMap = new HashMap<>();
             }
-            buildTree(0, maxDepth, positionMap, true);
+            buildTree(0, maxDepth, positionMap);
         } else {
-            buildTree(0, maxDepth, positionMap, true);
+            buildTree(0, maxDepth, positionMap);
         }
         if (futures.isEmpty()) {
             return null;
@@ -310,15 +285,16 @@ public class Move {
         }
     }
 
-    private void pruneFutures() {
-        if (!futures.isEmpty()) {
+    private void pruneFutures(int branchDepth, int maxDepth) {
+        if (!futures.isEmpty() && branchDepth <= maxDepth) {
+            if (branchDepth < maxDepth - 2) {
+                futures.forEach(future -> future.pruneFutures(branchDepth + 1, maxDepth));
+            }
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
-                int i = 1;
-                while (futures.size() > 3 && i < 5) {
-                    double range = Math.pow(0.5, i);
-                    futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + range : future.advantage < bestFuture.advantage - range);
-                    i++;
+                futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + .25 : future.advantage < bestFuture.advantage - .25);
+                if (futures.size() > 10) {
+                    futures.removeIf(future -> white ? future.advantage > bestFuture.advantage + .1 : future.advantage < bestFuture.advantage - .1);
                 }
             }
         }

@@ -99,7 +99,6 @@ public class Move {
         moveString += pawnMove ? (startCol == endCol ? "" : (char) (startCol + 97)) : (white ? Character.toLowerCase(key) : key);
         if (pawnMove && isEnPassant()) {
             runEnPassant(boardKey);
-            System.out.println(moveCode + " " + valid);
         } else if (pawnMove && endRow == (white ? 0 : 7)) {
             runQueenPromotion(boardKey, free);
         } else if (pawnMove) {

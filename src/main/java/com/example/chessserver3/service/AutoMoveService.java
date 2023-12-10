@@ -24,9 +24,9 @@ public class AutoMoveService {
     @Async
     public void autoMove(final Board board, final int depth) {
         if (board.getWinner() == 0) {
-            Move currentMove = board.getHistory().get(board.getHistory().size() - 1);
+            Move currentMove = board.getLastMove();
             board.move(currentMove.findBestFuture(depth).getMoveCode());
-//            new TreeView(currentMove);
+            new TreeView(currentMove);
             boardRepository.update(board);
             template.convertAndSend("/board/" + board.getId(), "update");
         }

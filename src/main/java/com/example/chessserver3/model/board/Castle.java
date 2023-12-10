@@ -70,38 +70,4 @@ public class Castle {
     @JsonIgnore
     private final static Set<String> castleMoveCodes = Set.of("0402", "0406", "7472", "7476");
 
-    public Castle copy() {
-        return Castle.builder().validCastles(new HashMap<>(validCastles)).build();
-    }
-
-    public static Castle initialCastle() {
-        return Castle.builder().validCastles(initialValidCastle).build();
-    }
-
-    public static boolean isCastle(String moveCode) {
-        return castleMoveCodes.contains(moveCode);
-    }
-
-    public void checkCastles(char key, int col) {
-        if (key == 'K') {
-            validCastles.put("7472", false);
-            validCastles.put("7476", false);
-        }
-        if (key == 'k') {
-            validCastles.put("0402", false);
-            validCastles.put("0406", false);
-        }
-        if (key == 'R' && col == 7) {
-            validCastles.put("7476", false);
-        }
-        if (key == 'R' && col == 0) {
-            validCastles.put("7472", false);
-        }
-        if (key == 'r' && col == 7) {
-            validCastles.put("0406", false);
-        }
-        if (key == 'r' && col == 0) {
-            validCastles.put("0402", false);
-        }
-    }
 }

@@ -19,22 +19,18 @@ public class Move {
     private boolean valid;
     private boolean white;
     private boolean myMove;
+    private char key;
+    private int startRow;
+    private int endRow;
+    private int startCol;
+    private int endCol;
 
     @JsonIgnore
     @BsonIgnore
     private String FEN;
     @JsonIgnore
     @BsonIgnore
-    private String oldFEN;
-    @JsonIgnore
-    @BsonIgnore
     private Move lastMove;
-    @JsonIgnore
-    @BsonIgnore
-    private int[] moveArray;
-    @JsonIgnore
-    @BsonIgnore
-    private char key;
     @JsonIgnore
     @BsonIgnore
     private boolean castleMove;
@@ -93,22 +89,26 @@ public class Move {
         this.castle = castle;
         this.lastMove = lastMove;
         moveString = "";
-        this.moveArray = moveArray;
+        this.startRow = moveArray[0];
+        this.startCol = moveArray[1];
+        this.endRow = moveArray[2];
+        this.endCol = moveArray[3];
         castleMove = false;
-        moveCode = String.format("%s%s%s%s", moveArray[0], moveArray[1], moveArray[2], moveArray[3]);
+        moveCode = String.format("%s%s%s%s", startRow, startCol, endRow, endCol);
         boolean pawnMove = key == 'p' || key == 'P';
-        boolean free = boardKey[moveArray[2]][moveArray[3]] == 'x';
+        boolean free = boardKey[endRow][endCol] == 'x';
         valid = !isObstructed(boardKey);
-        moveString += pawnMove ? (moveArray[1] == moveArray[3] ? "" : (char) (moveArray[1] + 97)) : (white ? Character.toLowerCase(key) : key);
-        if (pawnMove && !(lastMove.key == 'x') && isEnPassant(moveArray, lastMove.moveArray, lastMove.key, white ? -1 : 1)) {
+        moveString += pawnMove ? (startCol == endCol ? "" : (char) (startCol + 97)) : (white ? Character.toLowerCase(key) : key);
+        if (pawnMove && isEnPassant()) {
             runEnPassant(boardKey);
-        } else if (pawnMove && moveArray[2] == (white ? 0 : 7)) {
+            System.out.println(moveCode + " " + valid);
+        } else if (pawnMove && endRow == (white ? 0 : 7)) {
             runQueenPromotion(boardKey, free);
         } else if (pawnMove) {
             runBasicPawnMove(boardKey, free);
         } else if ((key == 'k' || key == 'K') && Castle.isCastle(moveCode)) {
             runCastle(boardKey);
-        } else if ((key == 'k' || key == 'K') && Math.abs(moveArray[3] - moveArray[1]) == 2) {
+        } else if ((key == 'k' || key == 'K') && Math.abs(endCol - startCol) == 2) {
             valid = false;
             runBasicMove(boardKey, free);
         } else {
@@ -121,7 +121,7 @@ public class Move {
 
     private boolean isObstructed(char[][] boardKey) {
         boolean obstructed = false;
-        char endKey = boardKey[moveArray[2]][moveArray[3]];
+        char endKey = boardKey[endRow][endCol];
         boolean open = endKey == 'x' || (Character.isLowerCase(key) != Character.isLowerCase(endKey));
         if (kingsAndKnights.contains(String.valueOf(key))) {
             obstructed = !open;
@@ -136,31 +136,31 @@ public class Move {
     }
 
     private boolean diagonalObstruction(char[][] boardKey) {
-        int vertical = moveArray[2] - moveArray[0];
-        int horizontal = moveArray[3] - moveArray[1];
+        int vertical = endRow - startRow;
+        int horizontal = endCol - startCol;
         if (Math.abs(vertical) != Math.abs(horizontal)) {
             return false;
         } else if (vertical > 0 && horizontal > 0) {
             for (int i=1; i<vertical; i++) {
-                if (boardKey[moveArray[0] + i][moveArray[1] + i] != 'x') {
+                if (boardKey[startRow + i][startCol + i] != 'x') {
                     return true;
                 }
             }
         } else if (vertical > 0 && horizontal < 0) {
             for (int i=1; i<vertical; i++) {
-                if (boardKey[moveArray[0] + i][moveArray[1] - i] != 'x') {
+                if (boardKey[startRow + i][startCol - i] != 'x') {
                     return true;
                 }
             }
         } else if (vertical < 0 && horizontal > 0) {
             for (int i=-1; i>vertical; i--) {
-                if (boardKey[moveArray[0] + i][moveArray[1] - i] != 'x') {
+                if (boardKey[startRow + i][startCol - i] != 'x') {
                     return true;
                 }
             }
         } else if (vertical < 0 && horizontal < 0) {
             for (int i=-1; i>vertical; i--) {
-                if (boardKey[moveArray[0] + i][moveArray[1] + i] != 'x') {
+                if (boardKey[startRow + i][startCol + i] != 'x') {
                     return true;
                 }
             }
@@ -169,31 +169,31 @@ public class Move {
     }
 
     private boolean straightObstruction(char[][] boardKey) {
-        int vertical = moveArray[2] - moveArray[0];
-        int horizontal = moveArray[3] - moveArray[1];
+        int vertical = endRow - startRow;
+        int horizontal = endCol - startCol;
         if (vertical != 0 && horizontal != 0) {
             return false;
         } else if (vertical == 0 && horizontal < 0) {
-            for (int i=moveArray[3] + 1; i<moveArray[1]; i++) {
-                if (boardKey[moveArray[0]][i] != 'x') {
+            for (int i=endCol + 1; i<startCol; i++) {
+                if (boardKey[startRow][i] != 'x') {
                     return true;
                 }
             }
         } else if (vertical == 0 && horizontal > 0){
-            for (int i=moveArray[1] + 1; i<moveArray[3]; i++) {
-                if (boardKey[moveArray[0]][i] != 'x') {
+            for (int i=startCol + 1; i<endCol; i++) {
+                if (boardKey[startRow][i] != 'x') {
                     return true;
                 }
             }
         } else if (vertical < 0) {
-            for (int i=moveArray[2] + 1; i<moveArray[0]; i++) {
-                if (boardKey[i][moveArray[1]] != 'x') {
+            for (int i=endRow + 1; i<startRow; i++) {
+                if (boardKey[i][startCol] != 'x') {
                     return true;
                 }
             }
         } else {
-            for (int i=moveArray[0] + 1; i<moveArray[2]; i++) {
-                if (boardKey[i][moveArray[1]] != 'x') {
+            for (int i=startRow + 1; i<endRow; i++) {
+                if (boardKey[i][startCol] != 'x') {
                     return true;
                 }
             }
@@ -205,18 +205,18 @@ public class Move {
         if (!free) {
             moveString += "x";
         }
-        moveString += (char) (moveArray[3] + 97);
-        moveString += 8 - moveArray[2];
-        boardKey[moveArray[0]][moveArray[1]] = 'x';
-        boardKey[moveArray[2]][moveArray[3]] = key;
+        moveString += (char) (endCol + 97);
+        moveString += 8 - endRow;
+        boardKey[startRow][startCol] = 'x';
+        boardKey[endRow][endCol] = key;
     }
 
     private void runBasicPawnMove(char[][] boardKey, boolean free) {
-        char endKey = boardKey[moveArray[2]][moveArray[3]];
-        if (Math.abs(moveArray[2] - moveArray[0]) == 2) {
-            valid = valid && endKey == 'x' && (white ? moveArray[0] == 6 : moveArray[0] == 1);
+        char endKey = boardKey[endRow][endCol];
+        if (Math.abs(endRow - startRow) == 2) {
+            valid = valid && endKey == 'x' && (white ? startRow == 6 : startRow == 1);
             runBasicMove(boardKey, free);
-        } else if (moveArray[1] != moveArray[3]) {
+        } else if (startCol != endCol) {
             valid = valid && endKey != 'x' && Character.isLowerCase(key) != Character.isLowerCase(endKey);
             runBasicMove(boardKey, free);
         } else {
@@ -228,21 +228,21 @@ public class Move {
     private void runEnPassant(char[][] boardKey) {
         enPassant = true;
         moveString += "x";
-        moveString += (char) (moveArray[3] + 97);
-        moveString += (moveArray[2] + 1);
-        boardKey[moveArray[0]][moveArray[1]] = 'x';
-        boardKey[moveArray[2]][moveArray[3]] = key;
-        boardKey[lastMove.moveArray[2]][lastMove.moveArray[3]] = 'x';
+        moveString += (char) (endCol + 97);
+        moveString += (endRow + 1);
+        boardKey[startRow][startCol] = 'x';
+        boardKey[endRow][endCol] = key;
+        boardKey[lastMove.endRow][lastMove.endCol] = 'x';
     }
 
     private void runQueenPromotion(char[][] boardKey, boolean free) {
         if (!free) {
             moveString += "x";
         }
-        moveString += (char) (moveArray[3] + 97);
-        moveString += (moveArray[2] + 1);
-        boardKey[moveArray[0]][moveArray[1]] = 'x';
-        boardKey[moveArray[2]][moveArray[3]] = white ? 'Q' : 'q';
+        moveString += (char) (endCol + 97);
+        moveString += (endRow + 1);
+        boardKey[startRow][startCol] = 'x';
+        boardKey[endRow][endCol] = white ? 'Q' : 'q';
     }
 
     private void runCastle(char[][] boardKey) {
@@ -256,10 +256,22 @@ public class Move {
         castleMove = true;
         moveString = Castle.castleMoveString.get(moveCode);
         int[] rookMove = Castle.castleRookMove.get(moveCode);
-        boardKey[moveArray[0]][moveArray[1]] = 'x';
-        boardKey[moveArray[2]][moveArray[3]] = key;
+        boardKey[startRow][startCol] = 'x';
+        boardKey[endRow][endCol] = key;
         boardKey[rookMove[0]][rookMove[1]] = 'x';
         boardKey[rookMove[2]][rookMove[3]] = white ? 'R' : 'r';
+    }
+
+    public boolean isEnPassant() {
+        if (lastMove.key == 'x') {
+            return false;
+        } else {
+            boolean attack = startCol != endCol;
+            boolean lastMovePawn = white ? lastMove.key == 'p' : lastMove.key == 'P';
+            boolean lastMovePushTwo = lastMove.endRow - lastMove.startRow == (white ? 2 : -2);
+            boolean lastMoveVulnerable = lastMove.endRow + (white ? -1 : 1) == endRow && lastMove.endCol == endCol;
+            return attack && lastMovePawn && lastMovePushTwo && lastMoveVulnerable;
+        }
     }
 
     public void generateFutures() {
@@ -275,7 +287,7 @@ public class Move {
             valid = valid && copyBoard.getMoves().values().stream()
                     .filter(future -> future.valid && !future.myMove)
                     .noneMatch(future -> Arrays.stream(Castle.castleSpaces.get(moveCode))
-                                .anyMatch(dest -> future.moveArray[2] == dest[0] && future.moveArray[3] == dest[1]));
+                                .anyMatch(dest -> future.endRow == dest[0] && future.endCol == dest[1]));
         }
         try {
             copyBoard.move(moveCode);
@@ -286,18 +298,6 @@ public class Move {
         }
         futures = new ArrayList<>(copyBoard.getMoves().values());
         goodFutures = new ArrayList<>(futures.stream().filter(Move::isValid).filter(Move::isMyMove).toList());
-    }
-
-
-    public static boolean isEnPassant(int[] move, int[] lastMove, char lastMoveKey, int direction) {
-        if (lastMove == null) {
-            return false;
-        } else {
-            boolean lastMovePawn = lastMoveKey == 'p' || lastMoveKey == 'P';
-            boolean lastMovePushTwo = lastMove[2] - lastMove[0] == -2 * direction;
-            boolean lastMoveVulnerable = lastMove[2] + direction == move[2] && lastMove[3] == move[3];
-            return lastMovePawn && lastMovePushTwo && lastMoveVulnerable;
-        }
     }
 
     private void calculateAdvantage(HashMap<String, Move> positionMap) {

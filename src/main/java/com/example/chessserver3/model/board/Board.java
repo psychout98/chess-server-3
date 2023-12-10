@@ -237,7 +237,7 @@ public class Board {
 
     public boolean checkCheck(boolean white) {
         return moves.values().stream().filter(move -> move.isWhite() != white).filter(Move::isValid)
-                .anyMatch(move -> Objects.equals(boardKey[move.getMoveArray()[2]][move.getMoveArray()[3]], (white ? 'K' : 'k')));
+                .anyMatch(move -> Objects.equals(boardKey[move.getEndRow()][move.getEndCol()], (white ? 'K' : 'k')));
     }
 
 
@@ -258,7 +258,7 @@ public class Board {
             FEN = move.getFEN();
             history.add(move);
             whiteToMove = !whiteToMove;
-            castle.checkCastles(move.getKey(), move.getMoveArray()[1]);
+            castle.checkCastles(move.getKey(), move.getStartCol());
             update();
         } else {
             throw new InvalidMoveException("Invalid move: " + moveCode);

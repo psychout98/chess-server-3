@@ -30,7 +30,6 @@ public class BoardService {
     private final static String initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
     private final static Move firstMove = new Move();
     static {
-        firstMove.setFEN(initialFEN);
         firstMove.setMoveCode("");
         firstMove.setMoveString("");
         firstMove.setKey('x');

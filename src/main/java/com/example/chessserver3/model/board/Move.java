@@ -309,6 +309,7 @@ public class Move {
             } else {
                 advantage = bestMove.advantage + ((white ? 1 : -1) * (kingFactor)) + 0.01 * (whitePossibilities - blackPossibilities);
                 futures.clear();
+                goodFutures.clear();
             }
         } else {
             advantage = 0;

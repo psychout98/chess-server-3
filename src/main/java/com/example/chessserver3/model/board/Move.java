@@ -374,7 +374,7 @@ public class Move {
                     return goodFutures.stream().findFirst().get();
                 }
                 buildTree(0, i, positionMap);
-                System.out.println(i + " " + sumNodes());
+//                System.out.println(i + " " + sumNodes());
                 positionMap = new HashMap<>();
                 pruneFutures(0, i);
             }
@@ -388,7 +388,7 @@ public class Move {
         if (futures.isEmpty()) {
             return null;
         } else {
-            System.out.println(maxDepth + " " + sumNodes());
+//            System.out.println(maxDepth + " " + sumNodes());
             return findHighestAdvantage();
         }
     }

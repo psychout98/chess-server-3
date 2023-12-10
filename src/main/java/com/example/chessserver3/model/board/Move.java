@@ -24,10 +24,8 @@ public class Move {
     private int endRow;
     private int startCol;
     private int endCol;
-
-    @JsonIgnore
-    @BsonIgnore
     private String FEN;
+
     @JsonIgnore
     @BsonIgnore
     private Move lastMove;

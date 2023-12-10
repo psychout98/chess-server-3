@@ -16,48 +16,57 @@ public class Move {
 
     private String moveCode;
     private String moveString;
+    private boolean valid;
+    private boolean white;
+    private boolean myMove;
+
     @JsonIgnore
+    @BsonIgnore
     private String FEN;
     @JsonIgnore
     @BsonIgnore
     private String oldFEN;
-    private boolean valid;
-    @BsonIgnore
     @JsonIgnore
-    private boolean white;
     @BsonIgnore
-    @JsonIgnore
-    private boolean myMove;
-    @BsonIgnore
-    @JsonIgnore
     private Move lastMove;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private int[] moveArray;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private char key;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private boolean castleMove;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private boolean enPassant;
     @JsonIgnore
+    @BsonIgnore
     private Castle castle;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private List<Move> futures;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private List<Move> goodFutures;
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
     private double advantage;
-
-
-    @BsonIgnore
     @JsonIgnore
+    @BsonIgnore
+    private static final String queensAndRooksAndPawns = "qQrRpP";
+    @JsonIgnore
+    @BsonIgnore
+    private static final String queensAndBishops = "qQbB";
+    @JsonIgnore
+    @BsonIgnore
+    private static final String kingsAndKnights = "kKnN";
+    @JsonIgnore
+    @BsonIgnore
+    private static final String kingsAndRooks = "kKrR";
+    @JsonIgnore
+    @BsonIgnore
     private static final HashMap<Character, Integer> pointValues = new HashMap<>();
     static {
         pointValues.put('q', -9);
@@ -74,8 +83,6 @@ public class Move {
         pointValues.put('K', 100);
         pointValues.put('x', 0);
     }
-    @BsonIgnore
-    @JsonIgnore
     private static Random random = new Random();
 
     public Move(char key, boolean whiteToMove, char[][] boardKey, final int[] moveArray, final Move lastMove, final Castle castle) {
@@ -116,9 +123,6 @@ public class Move {
         boolean obstructed = false;
         char endKey = boardKey[moveArray[2]][moveArray[3]];
         boolean open = endKey == 'x' || (Character.isLowerCase(key) != Character.isLowerCase(endKey));
-        String kingsAndKnights = "kKnN";
-        String queensAndBishops = "qQbB";
-        String queensAndRooksAndPawns = "qQrRpP";
         if (kingsAndKnights.contains(String.valueOf(key))) {
             obstructed = !open;
         }
@@ -259,12 +263,11 @@ public class Move {
     }
 
     public void generateFutures() {
-        Castle copyCastle = castle.copy();
         Board copyBoard = Board.builder()
                 .FEN(lastMove.FEN)
                 .history(new ArrayList<>(List.of(lastMove)))
                 .whiteToMove(white)
-                .castle(copyCastle)
+                .castle(castle)
                 .shallow(true)
                 .build();
         copyBoard.update();
@@ -308,8 +311,8 @@ public class Move {
                 advantage = white ? 100 : -100;
             } else {
                 advantage = bestMove.advantage + ((white ? 1 : -1) * (kingFactor)) + 0.01 * (whitePossibilities - blackPossibilities);
-                futures.forEach(future -> future.futures.clear());
-                goodFutures.forEach(future -> future.goodFutures.clear());
+//                futures.forEach(future -> future.futures.clear());
+//                goodFutures.forEach(future -> future.goodFutures.clear());
             }
         } else {
             advantage = 0;
@@ -365,12 +368,13 @@ public class Move {
         if (futures.isEmpty()) {
             generateFutures();
         }
-        if (maxDepth > 2) {
-            for (int i=2; i<maxDepth; i++) {
+        if (maxDepth > 1) {
+            for (int i=1; i<maxDepth; i++) {
                 if (goodFutures.size() == 1) {
                     return goodFutures.stream().findFirst().get();
                 }
                 buildTree(0, i, positionMap);
+                System.out.println(i + " " + sumNodes());
                 positionMap = new HashMap<>();
                 pruneFutures(0, i);
             }
@@ -384,7 +388,16 @@ public class Move {
         if (futures.isEmpty()) {
             return null;
         } else {
+            System.out.println(maxDepth + " " + sumNodes());
             return findHighestAdvantage();
+        }
+    }
+
+    int sumNodes() {
+        if (goodFutures.isEmpty()) {
+            return 0;
+        } else {
+            return goodFutures.size() + goodFutures.stream().map(Move::sumNodes).mapToInt(Integer::intValue).sum();
         }
     }
 
@@ -401,22 +414,19 @@ public class Move {
             return bestFuture;
         }
     }
-
     private void pruneFutures(int branchDepth, int maxDepth) {
         if (!goodFutures.isEmpty()) {
+            if (branchDepth < maxDepth) {
+                goodFutures.forEach(future -> future.pruneFutures(branchDepth + 1, maxDepth));
+            }
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
-//                int before = goodFutures.size();
                 int i = 1;
-                while (goodFutures.size() > 5 && i < 20) {
-                    double range = Math.pow(0.5, i);
+                while (goodFutures.size() > 2 && i < 6) {
+                    double range = 30 * Math.pow(0.3, i);
                     goodFutures.removeIf(future -> white ? future.advantage > bestFuture.advantage + range : future.advantage < bestFuture.advantage - range);
                     i++;
                 }
-//                System.out.println("pruned " + (before - goodFutures.size()) + " of " + before + " branches");
-            }
-            if (branchDepth < maxDepth - 2) {
-                goodFutures.forEach(future -> future.pruneFutures(branchDepth + 1, maxDepth));
             }
         }
     }

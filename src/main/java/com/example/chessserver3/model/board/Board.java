@@ -205,7 +205,7 @@ public class Board {
                                 int col = j + (l - location[1]);
                                 if (row >= 0 && row < 8 && col >= 0 && col < 8) {
                                     int[] moveArray = {i, j, row, col};
-                                    Move move = new Move(boardKey[i][j], whiteToMove, copyBoardKey(boardKey), moveArray, history.get(history.size() - 1), castle);
+                                    Move move = new Move(boardKey[i][j], whiteToMove, copyBoardKey(boardKey), moveArray, history.get(history.size() - 1), castle.copy());
                                     moves.put(move.getMoveCode(), move);
                                 }
                             }

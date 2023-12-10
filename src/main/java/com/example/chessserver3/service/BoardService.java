@@ -116,10 +116,10 @@ public class BoardService {
         String id = white ? board.getWhite().getId() : board.getBlack().getId();
         try {
             int depth = Integer.parseInt(id.split("-")[1]);
-            if (depth < 4) {
+            if (depth < 11) {
                 autoMoveService.autoMove(board, depth);
             } else {
-                throw new UnsupportedDepthException("Depth greater than 4 not yet supported by system");
+                throw new UnsupportedDepthException("Depth greater than 10 not yet supported by system");
             }
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             throw new UnsupportedDepthException("Unsupported or invalid depth provided");

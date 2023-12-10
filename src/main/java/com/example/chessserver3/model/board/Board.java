@@ -2,6 +2,7 @@ package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidFENException;
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
@@ -19,9 +20,9 @@ public class Board {
     private String id;
     private Player white;
     private Player black;
+    private String FEN;
     @BsonIgnore
     private char[][] boardKey;
-    private String FEN;
     private boolean whiteToMove;
     private boolean check;
     private boolean checkmate;
@@ -30,22 +31,42 @@ public class Board {
     private List<Move> history;
     private Castle castle;
     private int winner;
+    @BsonIgnore
+    @JsonIgnore
     @Builder.Default
     private boolean shallow = false;
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] kingMoves = {{false,true,true,true,false},{true,true,false,true,true},{false,true,true,true,false}};
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] whitePawnMoves = {{false,true,false},{true,true,true},{false,false,false}};
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] blackPawnMoves = {{false,false,false},{true,true,true},{false,true,false}};
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] knightMoves = {{false,true,false,true,false},{true,false,false,false,true},{false,false,false,false,false},{true,false,false,false,true},{false,true,false,true,false}};
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] bishopMoves = new Boolean[15][15];
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] rookMoves = new Boolean[15][15];
+    @BsonIgnore
+    @JsonIgnore
     private final static Boolean[][] queenMoves = new Boolean[15][15];
+    @BsonIgnore
+    @JsonIgnore
     private final static HashMap<Character, Boolean[][]> moveMaps = new HashMap<>();
+    @BsonIgnore
+    @JsonIgnore
     private final static HashMap<Character, int[]> pieceLocations = new HashMap<>();
     static {
         pieceLocations.put('k', new int[]{1,2});
         pieceLocations.put('K', new int[]{1,2});
-        pieceLocations.put('p', new int[]{2,1});
-        pieceLocations.put('P', new int[]{0,1});
+        pieceLocations.put('p', new int[]{0,1});
+        pieceLocations.put('P', new int[]{2,1});
         pieceLocations.put('n', new int[]{2,2});
         pieceLocations.put('N', new int[]{2,2});
         pieceLocations.put('b', new int[]{7,7});
@@ -105,7 +126,7 @@ public class Board {
         if (winner == 0) {
             addMoves();
             check = checkCheck(whiteToMove);
-            checkmate = moves.values().stream().filter(Move::isValid).toList().isEmpty();
+            checkmate = moves.values().stream().filter(Move::isValid).filter(Move::isMyMove).toList().isEmpty();
             stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
             winner = stalemate ? 3 : (checkmate ? (whiteToMove ? 2 : 1) : 0);
         }
@@ -124,7 +145,7 @@ public class Board {
                     j++;
                 } else if (c > 47 && c < 58) {
                     for (int k=j; k<(j + c - 48); k++) {
-                        boardKey[i][j] = 'x';
+                        boardKey[i][k] = 'x';
                     }
                     j += c - 48;
                 } else {
@@ -141,8 +162,11 @@ public class Board {
             int k = 0;
             for (int j=0; j<8; j++) {
                 char key = boardKey[i][j];
-                if (key == 'x') {
+                if (key == 'x' && j < 7) {
                     k++;
+                } else if (key == 'x') {
+                    k++;
+                    FEN.append(k);
                 } else {
                     if (k > 0) {
                         FEN.append(k);
@@ -151,18 +175,11 @@ public class Board {
                     FEN.append(key);
                 }
             }
-        }
-        return FEN.toString();
-    }
-
-    public static Boolean[][][][] buildBitMap(char[][] boardKey) {
-        Boolean[][][][] bitMap = new Boolean[8][8][][];
-        for (int i=0; i<8; i++) {
-            for (int j=0;j<8; j++) {
-                bitMap[i][j] = moveMaps.get(boardKey[i][j]);
+            if (i < 7) {
+                FEN.append("/");
             }
         }
-        return bitMap;
+        return FEN.toString();
     }
 
 //            4,4
@@ -185,11 +202,10 @@ public class Board {
                             if (moveMap[k][l]) {
                                 int[] location = pieceLocations.get(boardKey[i][j]);
                                 int row = i + (k - location[0]);
-                                int col = j + (l - location[0]);
-                                if (row > 0 && row < 8 && col > 0 && col < 8) {
+                                int col = j + (l - location[1]);
+                                if (row >= 0 && row < 8 && col >= 0 && col < 8) {
                                     int[] moveArray = {i, j, row, col};
                                     Move move = new Move(boardKey[i][j], whiteToMove, copyBoardKey(boardKey), moveArray, history.get(history.size() - 1), castle);
-                                    System.out.println(move.getMoveString());
                                     moves.put(move.getMoveCode(), move);
                                 }
                             }
@@ -199,7 +215,7 @@ public class Board {
             }
         }
         if (!shallow) {
-            moves.values().stream().filter(Move::isValid).forEach(Move::generateFutures);
+            moves.values().stream().filter(Move::isValid).filter(Move::isMyMove).forEach(Move::generateFutures);
         }
     }
 
@@ -220,7 +236,7 @@ public class Board {
     }
 
     public boolean checkCheck(boolean white) {
-        return moves.values().stream().filter(move -> move.isWhite() != white)
+        return moves.values().stream().filter(move -> move.isWhite() != white).filter(Move::isValid)
                 .anyMatch(move -> Objects.equals(boardKey[move.getMoveArray()[2]][move.getMoveArray()[3]], (white ? 'K' : 'k')));
     }
 
@@ -238,7 +254,7 @@ public class Board {
             throw new InvalidMoveException(String.format("Move code has incorrect format %s", moveCode));
         }
         Move move = moves.get(moveCode);
-        if (move != null && move.isValid() && move.isWhite() == whiteToMove) {
+        if (move != null && move.isValid() && move.isMyMove()) {
             FEN = move.getFEN();
             history.add(move);
             whiteToMove = !whiteToMove;

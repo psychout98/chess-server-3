@@ -50,7 +50,7 @@ public class BoardService {
                 .build();
         board.update();
         if (white != null && Objects.equals(white.getName(), "computer")) {
-            List<Move> moves = board.getMoves().values().stream().filter(Move::isValid).toList();
+            List<Move> moves = board.getMoves().values().stream().filter(Move::isValid).filter(Move::isMyMove).toList();
             board.move(moves.get(random.nextInt(moves.size() - 1)).getMoveCode());
         }
         boardRepository.create(board);
@@ -119,7 +119,7 @@ public class BoardService {
             if (depth < 5) {
                 autoMoveService.autoMove(board, depth);
             } else {
-                throw new UnsupportedDepthException("Depth greater than 3 not yet supported by system");
+                throw new UnsupportedDepthException("Depth greater than 5 not yet supported by system");
             }
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             throw new UnsupportedDepthException("Unsupported or invalid depth provided");

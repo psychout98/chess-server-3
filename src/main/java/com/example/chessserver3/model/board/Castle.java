@@ -32,8 +32,15 @@ public class Castle {
     public static final HashMap<String, int[][]> castleSpaces = new HashMap<>();
     @BsonIgnore
     @JsonIgnore
+    public static final HashMap<String, int[][]> castleRoutes = new HashMap<>();
+    @BsonIgnore
+    @JsonIgnore
     public final static HashMap<String, Boolean> initialValidCastle = new HashMap<>();
     static {
+        castleRoutes.put("0402", new int[][]{{0, 2}, {0, 3}, {0, 1}});
+        castleRoutes.put("0406", new int[][]{{0, 5}, {0, 6}});
+        castleRoutes.put("7472", new int[][]{{7, 2}, {7, 3}, {7, 1}});
+        castleRoutes.put("7476", new int[][]{{7, 5}, {7, 6}});
         castleSpaces.put("0402", new int[][]{{0, 2}, {0, 3}, {0, 4}});
         castleSpaces.put("0406", new int[][]{{0, 4}, {0, 5}, {0, 6}});
         castleSpaces.put("7472", new int[][]{{7, 2}, {7, 3}, {7, 4}});

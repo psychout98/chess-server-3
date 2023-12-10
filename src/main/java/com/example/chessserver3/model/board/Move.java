@@ -400,8 +400,8 @@ public class Move {
         if (futures.isEmpty()) {
             generateFutures();
         }
-        if (maxDepth > 1) {
-            for (int i=1; i<maxDepth; i++) {
+        if (maxDepth > 2) {
+            for (int i=2; i<maxDepth; i++) {
                 if (goodFutures.size() == 1) {
                     return goodFutures.stream().findFirst().get();
                 }
@@ -449,7 +449,7 @@ public class Move {
     }
     private void pruneFutures(int branchDepth, int maxDepth) {
         if (!goodFutures.isEmpty()) {
-            if (branchDepth < maxDepth - 1) {
+            if (branchDepth < maxDepth - 2) {
                 goodFutures.forEach(future -> future.pruneFutures(branchDepth + 1, maxDepth));
             }
             Move bestFuture = findHighestAdvantage();

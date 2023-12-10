@@ -4,7 +4,6 @@ import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.exception.UnsupportedDepthException;
 import com.example.chessserver3.model.board.Board;
-import com.example.chessserver3.model.board.Castle;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
@@ -27,12 +26,12 @@ public class BoardService {
     private UserService userService;
     @Autowired
     private AutoMoveService autoMoveService;
-    private final static String initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    private final static String initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private final static Move firstMove = new Move();
     static {
-        firstMove.setFEN(initialFEN);
+        firstMove.setFenString(initialFEN);
         firstMove.setMoveCode("");
-        firstMove.setMoveString("");
+        firstMove.setMoveString("-");
         firstMove.setKey('x');
     }
     private final static Random random = new Random();
@@ -42,11 +41,10 @@ public class BoardService {
                 .id(new ObjectId().toHexString())
                 .white(white)
                 .black(black)
-                .FEN(initialFEN)
-                .moves(new HashMap<>())
-                .history(new ArrayList<>(List.of(firstMove)))
-                .castle(Castle.initialCastle())
-                .whiteToMove(true)
+                .fenString(initialFEN)
+                .lastMove(firstMove)
+                .history(new ArrayList<>())
+                .shallow(false)
                 .build();
         board.update();
         if (white != null && Objects.equals(white.getName(), "computer")) {
@@ -129,11 +127,17 @@ public class BoardService {
     public Board getBoardAtMove(String boardId, int moveNumber) {
         Board board = getBoard(boardId);
         if (board.getHistory().size() - 1 != moveNumber) {
-            board.setBoardKey(Board.FENtoBoardKey(board.getHistory().get(moveNumber).getFEN()));
-            board.setMoves(Collections.emptyMap());
-            board.setCheck(false);
+            Board copyBoard = Board.builder()
+                    .fenString(board.getHistory().get(moveNumber).getFEN())
+                    .lastMove(firstMove)
+                    .history(board.getHistory())
+                    .shallow(true)
+                    .build();
+            copyBoard.update();
+            return copyBoard;
+        } else {
+            return board;
         }
-        return board;
     }
 
     public List<Board> getBoardsByPlayerName(String playerName) {

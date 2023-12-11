@@ -22,7 +22,7 @@ public class FEN {
     private final int halfMoveClock;
     private final int fullMoveNumber;
     private final static String validChars = "rRnNbBkKqQpP";
-    private final static String validCastles = "KQkq";
+    private final static String validCastles = "KQkq-";
 
     public FEN(String FEN) {
         this.FEN = FEN;
@@ -143,7 +143,15 @@ public class FEN {
                 castle.append(entry.getKey());
             }
         }
-        return castle.toString();
+        if (castle.isEmpty()) {
+            return "-";
+        } else {
+            return castle.toString();
+        }
+    }
+
+    public static String getBoardField(String FEN) {
+        return FEN.split(" ")[0];
     }
 
 }

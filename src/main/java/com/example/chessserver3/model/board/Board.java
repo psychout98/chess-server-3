@@ -19,21 +19,19 @@ public class Board {
     private String id;
     private Player white;
     private Player black;
-    private String fenString;
-    @BsonIgnore
-    private FEN fenData;
+    private FEN fen;
+    private List<PGN> history;
+    private int winner;
     private boolean check;
     private boolean checkmate;
     private boolean stalemate;
+    @BsonIgnore
     private Map<String, Move> moves;
-    private List<PGN> history;
-    private int winner;
+    @BsonIgnore
     private Move lastMove;
+    @BsonIgnore
     @Builder.Default
     private boolean shallow = false;
-    @BsonIgnore
-    @JsonIgnore
-    private int[] enPassantTarget;
     @BsonIgnore
     @JsonIgnore
     private final static Boolean[][] kingMoves = {{false,true,true,true,false},{true,true,false,true,true},{false,true,true,true,false}};
@@ -116,11 +114,11 @@ public class Board {
     }
 
     public static int[] spaceToSpace(String space) {
-        return new int[]{(char) (space.charAt(0) - 97), space.charAt(1) - 49};
+        return new int[]{56 - space.charAt(1), (char) (space.charAt(0) - 97)};
     }
 
     public static String spaceToSpace(int[] space) {
-        return String.format("%s%s", (char) (space[0] + 97), (char) (space[1] + 48));
+        return String.format("%s%s", (char) (space[1] + 97), (char) (56 - space[0]));
     }
 
     public void resign(boolean white) {
@@ -129,28 +127,17 @@ public class Board {
 
     public void update() {
             moves = new HashMap<>();
-            fenData = new FEN(fenString);
         if (winner == 0) {
             addMoves();
-            check = checkCheck(fenData.isWhiteToMove());
+            check = checkCheck(fen.isWhiteToMove());
             checkmate = moves.values().stream().filter(Move::isValid).filter(Move::isMyMove).toList().isEmpty();
             stalemate = (checkmate & !check) || isFiftyNeutral() || isThreeFoldRep();
-            winner = stalemate ? 3 : (checkmate ? (fenData.isWhiteToMove() ? 2 : 1) : 0);
+            winner = stalemate ? 3 : (checkmate ? (fen.isWhiteToMove() ? 2 : 1) : 0);
         }
     }
 
-//            4,4
-//            2,2
-//            0,1
-//
-//    0       (2,3)   0       1       0
-//    1       0       0       0       1
-//    0       0       (4,4)   0       0
-//    1       0       0       0       1
-//    0       1       0       1       0
-
     private void addMoves() {
-        char[][] boardKey = fenData.getBoardKey();
+        char[][] boardKey = fen.getBoardKey();
         for (int i=0;i<8;i++) {
             for (int j=0;j<8;j++) {
                 if (boardKey[i][j] != 'x') {
@@ -163,7 +150,7 @@ public class Board {
                                 int col = j + (l - location[1]);
                                 if (row >= 0 && row < 8 && col >= 0 && col < 8) {
                                     int[] moveArray = {i, j, row, col};
-                                    Move move = new Move(boardKey[i][j], moveArray, enPassantTarget, fenData);
+                                    Move move = new Move(boardKey[i][j], moveArray, fen);
                                     moves.put(move.getMoveCode(), move);
                                 }
                             }
@@ -195,7 +182,7 @@ public class Board {
 
     public boolean checkCheck(boolean white) {
         return moves.values().stream().filter(move -> move.isWhite() != white).filter(Move::isValid)
-                .anyMatch(move -> Objects.equals(fenData.getBoardKey()[move.getEndRow()][move.getEndCol()], (white ? 'K' : 'k')));
+                .anyMatch(move -> Objects.equals(fen.getBoardKey()[move.getEndRow()][move.getEndCol()], (white ? 'K' : 'k')));
     }
 
 
@@ -213,9 +200,9 @@ public class Board {
         }
         Move move = moves.get(moveCode);
         if (move != null && move.isValid() && move.isMyMove()) {
-            fenString = move.getFenString();
-            history.add(new PGN(move.getMoveString(), move.getMoveCode(), fenString));
+            history.add(new PGN(move.getMoveString(), move.getMoveCode(), move.getFenString()));
             lastMove = move;
+            fen = new FEN(move.getFenString());
             update();
         } else {
             throw new InvalidMoveException("Invalid move: " + moveCode);
@@ -229,7 +216,7 @@ public class Board {
     private boolean isThreeFoldRep() {
         int i = 0;
         for (PGN move : history) {
-            if (Objects.equals(move.getFEN(), fenString)) {
+            if (Objects.equals(FEN.getBoardField(move.getFen()), FEN.getBoardField(fen.getFen()))) {
                 i++;
             }
             if (i > 2) {

@@ -1,82 +1,49 @@
 package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidMoveException;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.bson.codecs.pojo.annotations.BsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
 
 import java.util.*;
 
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({"myMove", "key", "white", "startRow", "endRow", "startCol", "endCol",
+        "fenString", "position", "previousFen", "endKey", "castleMove", "enPassant", "pushTwo",
+        "futures", "materialAdvantage", "strategicAdvantage", "positionAdvantage",
+        "checkmate", "queensAndRooksAndPawns", "queensAndBishops", "kingsAndKnights", "castle",
+        "gradient", "pointValues", "rt"})
 public class Move {
 
     private String moveCode;
     private String moveString;
     private boolean valid;
-    private boolean white;
     private boolean myMove;
     private char key;
+    private boolean white;
     private int startRow;
     private int endRow;
     private int startCol;
     private int endCol;
     private String fenString;
     private String position;
-
-    @JsonIgnore
-    @BsonIgnore
-    private String previousFEN;
-    @JsonIgnore
-    @BsonIgnore
+    private FEN previousFen;
     private char endKey;
-    @JsonIgnore
-    @BsonIgnore
     private boolean castleMove;
-    @JsonIgnore
-    @BsonIgnore
     private boolean enPassant;
-    @JsonIgnore
-    @BsonIgnore
     private boolean pushTwo;
-    @JsonIgnore
-    @BsonIgnore
     private List<Move> futures;
-    @JsonIgnore
-    @BsonIgnore
-    private List<Move> goodFutures;
-    @JsonIgnore
-    @BsonIgnore
     private double materialAdvantage;
-    @JsonIgnore
-    @BsonIgnore
     private double strategicAdvantage;
-    @JsonIgnore
-    @BsonIgnore
     private double positionAdvantage;
-    @JsonIgnore
-    @BsonIgnore
     private boolean checkmate;
-    @JsonIgnore
-    @BsonIgnore
     private static final String queensAndRooksAndPawns = "qQrRpP";
-    @JsonIgnore
-    @BsonIgnore
     private static final String queensAndBishops = "qQbB";
-    @JsonIgnore
-    @BsonIgnore
     private static final String kingsAndKnights = "kKnN";
-    @JsonIgnore
-    @BsonIgnore
     private static final HashMap<String, String> castle = new HashMap<>();
-    @JsonIgnore
-    @BsonIgnore
     private static final double[] gradient = {0, 0.1, 0.2, 0.3, 0.3, 0.2, 0.1, 0};
-    @JsonIgnore
-    @BsonIgnore
     private static final HashMap<Character, Double> pointValues = new HashMap<>();
     static {
         castle.put("0402", "q");
@@ -93,15 +60,16 @@ public class Move {
         pointValues.put('N', 8.17);
         pointValues.put('p', -1.98);
         pointValues.put('P', 1.98);
-        pointValues.put('k', 0.0);
-        pointValues.put('K', 0.0);
+        pointValues.put('k', -30.0);
+        pointValues.put('K', 30.0);
         pointValues.put('x', 0.0);
     }
+    private static final Runtime rt = Runtime.getRuntime();
 
-    public Move(final char key, final int[] moveArray, final int[] enPassantTarget, final FEN previousFEN) {
-        this.previousFEN = previousFEN.getFEN();
+    public Move(final char key, final int[] moveArray, final FEN previousFen) {
+        this.previousFen = previousFen;
         white = Character.isUpperCase(key);
-        myMove = white == previousFEN.isWhiteToMove();
+        myMove = white == previousFen.isWhiteToMove();
         this.key = key;
         enPassant = false;
         checkmate = false;
@@ -114,19 +82,15 @@ public class Move {
         pushTwo = false;
         moveCode = String.format("%s%s%s%s", startRow, startCol, endRow, endCol);
         boolean pawnMove = key == 'p' || key == 'P';
-        char[][] boardKey = Board.copyBoardKey(previousFEN.getBoardKey());
+        char[][] boardKey = Board.copyBoardKey(previousFen.getBoardKey());
         endKey = boardKey[endRow][endCol];
-        fenString = previousFEN.getFEN();
+        fenString = previousFen.getFen();
         boolean free = endKey == 'x';
         valid = !isObstructed(boardKey);
         moveString += pawnMove ? (startCol == endCol ? "" : (char) (startCol + 97)) : (white ? Character.toLowerCase(key) : key);
-        if (pawnMove && isEnPassant(enPassantTarget)) {
-            runEnPassant(boardKey, enPassantTarget);
-        } else if (pawnMove && endRow == (white ? 0 : 7)) {
-            runQueenPromotion(boardKey, free);
-        } else if (pawnMove) {
-            runBasicPawnMove(boardKey, free);
-        } else if ((key == 'k' || key == 'K') && castle.get(moveCode) != null && previousFEN.getCastles().contains(castle.get(moveCode))) {
+        if (pawnMove) {
+            runPawnMove(boardKey, free, previousFen.getEnPassantTarget());
+        } else if ((key == 'k' || key == 'K') && castle.get(moveCode) != null && previousFen.getCastles().contains(castle.get(moveCode))) {
             runCastle(boardKey);
         } else if ((key == 'k' || key == 'K') && Math.abs(endCol - startCol) == 2) {
             valid = false;
@@ -134,16 +98,16 @@ public class Move {
         } else {
             runBasicMove(boardKey, free);
         }
-        fenString = FEN.updateFEN(previousFEN, boardKey, key, endCol, pushTwo ? target() : "-");
+        fenString = FEN.updateFEN(previousFen, boardKey, key, endCol, pushTwo ? enPassantTarget() : "-");
         position = FEN.getBoardField(fenString);
         futures = new ArrayList<>();
-        goodFutures = new ArrayList<>();
+        futures = new ArrayList<>();
         calculateMaterialAdvantage();
         calculatePositionAdvantage();
         strategicAdvantage = 0;
     }
 
-    private String target() {
+    private String enPassantTarget() {
         return Board.spaceToSpace(new int[]{white ? startRow - 1 : startRow + 1, startCol});
     }
 
@@ -238,28 +202,41 @@ public class Move {
         boardKey[endRow][endCol] = key;
     }
 
-    private void runBasicPawnMove(char[][] boardKey, boolean free) {
+    private void runPawnMove(char[][] boardKey, boolean free, int[] enPassantTarget) {
         if (Math.abs(endRow - startRow) == 2) {
             pushTwo = true;
             valid = valid && endKey == 'x' && (white ? startRow == 6 : startRow == 1);
             runBasicMove(boardKey, free);
         } else if (startCol != endCol) {
-            valid = valid && endKey != 'x' && Character.isLowerCase(key) != Character.isLowerCase(endKey);
-            runBasicMove(boardKey, free);
+            if (isEnPassant(enPassantTarget)) {
+                runEnPassant(boardKey);
+            } else {
+                valid = valid && endKey != 'x' && Character.isLowerCase(key) != Character.isLowerCase(endKey);
+                if (endRow == (white ? 0 : 7)) {
+                    runQueenPromotion(boardKey, free);
+                } else {
+                    runBasicMove(boardKey, free);
+                }
+            }
         } else {
             valid = valid && endKey == 'x';
-            runBasicMove(boardKey, free);
+            if (endRow == (white ? 0 : 7)) {
+                runQueenPromotion(boardKey, free);
+            } else {
+                runBasicMove(boardKey, free);
+            }
         }
     }
 
-    private void runEnPassant(char[][] boardKey, int[] enPassantTarget) {
+    private void runEnPassant(char[][] boardKey) {
+        int targetRow = white ? endRow + 1 : endRow - 1;
         enPassant = true;
         moveString += "x";
         moveString += (char) (endCol + 97);
-        moveString += (endRow + 1);
+        moveString += (targetRow + 1);
         boardKey[startRow][startCol] = 'x';
         boardKey[endRow][endCol] = key;
-        boardKey[enPassantTarget[0]][enPassantTarget[1]] = 'x';
+        boardKey[targetRow][endCol] = 'x';
     }
 
     private void runQueenPromotion(char[][] boardKey, boolean free) {
@@ -267,7 +244,7 @@ public class Move {
             moveString += "x";
         }
         moveString += (char) (endCol + 97);
-        moveString += (endRow + 1);
+        moveString += 8 - endRow;
         boardKey[startRow][startCol] = 'x';
         boardKey[endRow][endCol] = white ? 'Q' : 'q';
     }
@@ -299,42 +276,39 @@ public class Move {
 
     public void generateFutures() {
         Board copyBoard = Board.builder()
-                .fenString(previousFEN)
+                .fen(previousFen)
                 .history(new ArrayList<>())
                 .shallow(true)
                 .build();
         copyBoard.update();
-        if (castleMove) {
-            valid = valid && copyBoard.getMoves().values().stream()
-                    .filter(future -> future.valid && !future.myMove)
-                    .noneMatch(future -> Arrays.stream(Castle.castleSpaces.get(moveCode))
-                                .anyMatch(dest -> future.endRow == dest[0] && future.endCol == dest[1]));
-        }
         try {
             copyBoard.move(moveCode);
-            valid = valid && !copyBoard.checkCheck(white);
+            if (castleMove) {
+                valid = valid && copyBoard.getMoves().values().stream()
+                        .filter(future -> future.valid && future.myMove)
+                        .noneMatch(future -> Arrays.stream(Castle.castleSpaces.get(moveCode))
+                                .anyMatch(dest -> future.endRow == dest[0] && future.endCol == dest[1]));
+            } else {
+                valid = valid && !copyBoard.checkCheck(white);
+            }
         } catch (InvalidMoveException e) {
             System.out.println(e.getMessage());
             valid = false;
         }
         futures = new ArrayList<>(copyBoard.getMoves().values().stream().filter(Move::isValid).toList());
-        goodFutures = new ArrayList<>(futures.stream().filter(Move::isMyMove).toList());
         strategicAdvantage = calculateStrategicAdvantage();
+        futures.removeIf(future -> !future.myMove);
     }
 
     private void calculateAdvantage() {
-        if (!goodFutures.isEmpty()) {
-            goodFutures.forEach(Move::calculateAdvantage);
+        if (!futures.isEmpty()) {
+            futures.forEach(Move::calculateAdvantage);
             Move bestMove = findHighestAdvantage();
             if (bestMove != null) {
                 if (checkmate) {
                     materialAdvantage = white ? 100 : -100;
-                    strategicAdvantage = white ? 100 : -100;
-                    positionAdvantage = white ? 100 : -100;
                 } else {
                     materialAdvantage = bestMove.materialAdvantage;
-                    strategicAdvantage = bestMove.strategicAdvantage == 0 ? strategicAdvantage : bestMove.strategicAdvantage;
-                    positionAdvantage = bestMove.positionAdvantage;
                 }
             }
         }
@@ -343,13 +317,13 @@ public class Move {
     private double calculateStrategicAdvantage() {
         double whiteAttacks = futures.stream()
                 .filter(future -> future.valid && future.white)
-                .mapToDouble(future -> calculatePoints(future.endKey)).sum();
+                .mapToDouble(future -> calculatePoints(future.endKey) + future.positionAdvantage).sum();
         double blackAttacks = futures.stream()
                 .filter(future -> future.valid && !future.white)
-                .mapToDouble(future -> calculatePoints(future.endKey)).sum();
-        double kingQueenFactor = castleMove ? 10 : key == 'k' || key == 'K' || key == 'q' || key == 'Q' ? -3 : 0;
+                .mapToDouble(future -> calculatePoints(future.endKey) + future.positionAdvantage).sum();
+        double kingQueenFactor = castleMove ? 3 : key == 'k' || key == 'K' || key == 'q' || key == 'Q' ? -3 : 0;
 
-        return (white ? 1 : -1) * (kingQueenFactor) - (whiteAttacks + blackAttacks) / 10;
+        return (white ? 1 : -1) * (kingQueenFactor) - (whiteAttacks + blackAttacks) / 100;
     }
 
     private void calculatePositionAdvantage() {
@@ -374,30 +348,31 @@ public class Move {
 
     public void buildTree(int branchDepth, int maxDepth, HashMap<String, Move> positionMap) {
         if (branchDepth < maxDepth) {
-            ListIterator<Move> iterator = goodFutures.listIterator();
-            goodFutures = new ArrayList<>();
+            ListIterator<Move> iterator = futures.listIterator();
+            futures = new ArrayList<>();
             while (iterator.hasNext()) {
                 Move future = iterator.next();
                 Move mappedPosition = positionMap.get(future.position);
                 if (mappedPosition == null) {
-                    if (future.goodFutures.isEmpty()) {
-                        future.generateFutures();
-                        if (future.valid) {
-                            future.buildTree(branchDepth + 1, maxDepth, positionMap);
+                    if (future.futures.isEmpty()) {
+                        if (memoryUsage() < 0.9) {
+                            future.generateFutures();
+                        } else {
+                            throw new OutOfMemoryError("Excessive memory usage");
                         }
-                    } else {
-                        future.buildTree(branchDepth + 1, maxDepth, positionMap);
                     }
-                    goodFutures.add(future);
-                    positionMap.put(future.position, future);
+                    if (future.valid && future.myMove) {
+                        future.buildTree(branchDepth + 1, maxDepth, positionMap);
+                        futures.add(future);
+                        positionMap.put(future.position, future);
+                    }
                 } else {
-                    goodFutures.add(mappedPosition);
+                    futures.add(mappedPosition);
                 }
             }
-            if (goodFutures.isEmpty()) {
+            if (futures.isEmpty()) {
                 checkmate = true;
             }
-            futures.clear();
         }
     }
 
@@ -408,25 +383,22 @@ public class Move {
         }
         if (maxDepth > 2) {
             for (int i=2; i<maxDepth; i++) {
-                if (goodFutures.size() == 1) {
-                    return goodFutures.stream().findFirst().get();
+                if (futures.size() == 1) {
+                    return futures.stream().findFirst().get();
                 }
                 buildTree(0, i, positionMap);
                 calculateAdvantage();
-                int before = sumGoodFutures();
                 pruneFutures(0, i, maxDepth);
                 positionMap.clear();
-                System.out.println(i + " " + sumGoodFutures() + " / " + before);
             }
-            if (goodFutures.size() == 1) {
-                return goodFutures.stream().findFirst().get();
+            if (futures.size() == 1) {
+                return futures.stream().findFirst().get();
             }
             buildTree(0, maxDepth, positionMap);
-            System.out.println(maxDepth + " " + sumGoodFutures());
         } else {
             buildTree(0, maxDepth, positionMap);
         }
-        if (goodFutures.isEmpty()) {
+        if (futures.isEmpty()) {
             return null;
         } else {
             calculateAdvantage();
@@ -434,34 +406,40 @@ public class Move {
         }
     }
 
-    int sumGoodFutures() {
-        if (goodFutures.isEmpty()) {
+    public double memoryUsage() {
+        long totalMemory = rt.totalMemory();
+        long usedMemory = totalMemory - rt.freeMemory();
+        return (double) usedMemory / totalMemory;
+    }
+
+    int sumFutures() {
+        if (futures.isEmpty()) {
             return 0;
         } else {
-            return goodFutures.size() + goodFutures.stream().map(Move::sumGoodFutures).mapToInt(Integer::intValue).sum();
+            return futures.size() + futures.stream().map(Move::sumFutures).mapToInt(Integer::intValue).sum();
         }
     }
 
     private Move findHighestAdvantage() {
-        if (goodFutures.isEmpty()) {
+        if (futures.isEmpty()) {
             return null;
         } else {
-            return white ? goodFutures.stream().min(Comparator.comparing(Move::totalAdvantage)).get() :
-                    goodFutures.stream().max(Comparator.comparing(Move::totalAdvantage)).get();
+            return white ? futures.stream().min(Comparator.comparing(Move::totalAdvantage)).get() :
+                    futures.stream().max(Comparator.comparing(Move::totalAdvantage)).get();
         }
     }
 
     private void pruneFutures(int branchDepth, int pruneDepth, int maxDepth) {
-        if (!goodFutures.isEmpty()) {
-            if (branchDepth < maxDepth - 2) {
-                goodFutures.forEach(future -> future.pruneFutures(branchDepth + 1, pruneDepth, maxDepth));
+        if (!futures.isEmpty()) {
+            if (branchDepth < pruneDepth - 1) {
+                futures.forEach(future -> future.pruneFutures(branchDepth + 1, pruneDepth, maxDepth));
             }
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
                 int i = 0;
-                while (goodFutures.size() > maxDepth - pruneDepth + 2 && i < 50) {
-                    double range = 10 * Math.pow(0.9, i);
-                    goodFutures.removeIf(future -> white ? future.totalAdvantage() > bestFuture.totalAdvantage() + range :
+                while (futures.size() > (maxDepth / pruneDepth) + 1 && i < 50) {
+                    double range = 25 * Math.pow(0.9, i);
+                    futures.removeIf(future -> white ? future.totalAdvantage() > bestFuture.totalAdvantage() + range :
                             future.totalAdvantage() < bestFuture.totalAdvantage() - range);
                     i++;
                 }

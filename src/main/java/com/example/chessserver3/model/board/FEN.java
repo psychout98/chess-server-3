@@ -2,8 +2,11 @@ package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidFENException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -11,24 +14,39 @@ import java.util.Map;
 import java.util.Objects;
 
 @Getter
-@JsonIgnoreProperties({"castles", "enPassantTarget", "halfMoveClock", "fullMoveNumber", "validChars", "validCastles"})
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class FEN {
 
-    private final String FEN;
-    private final char[][] boardKey = new char[8][8];
-    private final boolean whiteToMove;
-    private final String castles;
-    private final int[] enPassantTarget;
-    private final int halfMoveClock;
-    private final int fullMoveNumber;
+    private String fen;
+    @BsonIgnore
+    private char[][] boardKey = new char[8][8];
+    @BsonIgnore
+    private boolean whiteToMove;
+    @JsonIgnore
+    @BsonIgnore
+    private String castles;
+    @JsonIgnore
+    @BsonIgnore
+    private int[] enPassantTarget;
+    @JsonIgnore
+    @BsonIgnore
+    private int halfMoveClock;
+    @JsonIgnore
+    @BsonIgnore
+    private int fullMoveNumber;
+    @JsonIgnore
+    @BsonIgnore
     private final static String validChars = "rRnNbBkKqQpP";
+    @JsonIgnore
+    @BsonIgnore
     private final static String validCastles = "KQkq-";
 
-    public FEN(String FEN) {
-        this.FEN = FEN;
-        String[] fields = FEN.split(" ");
+    public void build() {
+        String[] fields = fen.split(" ");
         if (fields.length != 6) {
-            throw new InvalidFENException("Incorrect FEN format : \"" + FEN + "\"");
+            throw new InvalidFENException("Incorrect FEN format : \"" + fen + "\"");
         }
         loadBoardKey(fields[0]);
         if (Objects.equals(fields[1], "w")) {
@@ -36,7 +54,7 @@ public class FEN {
         } else if (Objects.equals(fields[1], "b")) {
             whiteToMove = false;
         } else {
-            throw new InvalidFENException("Incorrect FEN format : \"" + FEN + "\"");
+            throw new InvalidFENException("Incorrect FEN format : \"" + fen + "\"");
         }
         if (Arrays.stream(fields[2].split("")).anyMatch(key -> !validCastles.contains(key))) {
             throw new InvalidFENException("Invalid castle field: " + fields[2]);
@@ -46,6 +64,11 @@ public class FEN {
         enPassantTarget = Objects.equals(fields[3], "-") ? null : Board.spaceToSpace(fields[3]);
         halfMoveClock = Integer.parseInt(fields[4]);
         fullMoveNumber = Integer.parseInt(fields[5]);
+    }
+
+    public FEN(String fen) {
+        this.fen = fen;
+        build();
     }
 
     public void loadBoardKey(String boardField) {

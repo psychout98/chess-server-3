@@ -40,12 +40,12 @@ public class TreeView extends JFrame implements ActionListener {
                 backButton.addActionListener(this);
                 backPanel.add(backButton);
             }
-            buttons = new HashMap<>();
             buttonPanel.removeAll();
-            futures = move.getGoodFutures().stream().collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
+            buttons = new HashMap<>();
+            futures = move.getFutures().stream().collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
             for (Move future : futures.values().stream().sorted(Comparator.comparing(Move::totalAdvantage)).toList()) {
-                JButton futureButton = new JButton(future.getMoveString() + " (" + String.format("%.2f", future.getMaterialAdvantage() + future.getStrategicAdvantage()) + ")");
-                if (!future.getGoodFutures().isEmpty()) {
+                JButton futureButton = new JButton(future.getMoveString() + " (" + String.format("%.2f", future.totalAdvantage()) + ")");
+                if (!future.getFutures().isEmpty()) {
                     futureButton.addActionListener(this);
                 }
                 buttons.put(future.getMoveCode(), futureButton);

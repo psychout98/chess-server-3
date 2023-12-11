@@ -52,9 +52,9 @@ public class MongoConfig {
     public MongoCollection<Board> boards() {
         ClassModel<Board> boardPojo = ClassModel.builder(Board.class).enableDiscriminator(true).build();
         ClassModel<Player> playerModel = ClassModel.builder(Player.class).enableDiscriminator(true).build();
-        ClassModel<Move> moveModel = ClassModel.builder(Move.class).enableDiscriminator(true).build();
+        ClassModel<FEN> fenModel = ClassModel.builder(FEN.class).enableDiscriminator(true).build();
         ClassModel<PGN> pgnModel = ClassModel.builder(PGN.class).enableDiscriminator(true).build();
-        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().register(boardPojo, playerModel, moveModel, pgnModel).build();
+        CodecProvider pojoCodecProvider = PojoCodecProvider.builder().register(boardPojo, playerModel, fenModel, pgnModel).build();
         CodecRegistry pojoCodecRegistry = fromRegistries(getDefaultCodecRegistry(), fromProviders(pojoCodecProvider));
         MongoDatabase database = mongoClient().getDatabase("chess").withCodecRegistry(pojoCodecRegistry);
         return database.getCollection("boards", Board.class);

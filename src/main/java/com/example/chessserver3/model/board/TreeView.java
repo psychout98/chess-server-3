@@ -1,7 +1,5 @@
 package com.example.chessserver3.model.board;
 
-import org.apache.logging.log4j.util.PropertySource;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -35,19 +33,19 @@ public class TreeView extends JFrame implements ActionListener {
 
     public void display() {
         if (move != null) {
-            setTitle(move.getMoveString() + "(" + String.format("%.2f", move.getAdvantage()) + ") " + (move.isWhite() ? "black to move" : "white to move"));
+            setTitle(move.getMoveString() + "(" + String.format("%.2f", move.getMaterialAdvantage()) + ") " + (move.isWhite() ? "black to move" : "white to move"));
             backPanel.removeAll();
             if (!lastMove.isEmpty()) {
                 backButton = new JButton("go back to " + lastMove.lastElement().getMoveString());
                 backButton.addActionListener(this);
                 backPanel.add(backButton);
             }
-            buttons = new HashMap<>();
             buttonPanel.removeAll();
-            futures = move.getGoodFutures().stream().collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
-            for (Move future : futures.values().stream().sorted(Comparator.comparing(Move::getAdvantage)).toList()) {
-                JButton futureButton = new JButton(future.getMoveString() + "(" + String.format("%.2f", future.getAdvantage()) + ")");
-                if (!future.getGoodFutures().isEmpty()) {
+            buttons = new HashMap<>();
+            futures = move.getFutures().stream().collect(Collectors.toMap(Move::getMoveCode, Function.identity()));
+            for (Move future : futures.values().stream().sorted(Comparator.comparing(Move::totalAdvantage)).toList()) {
+                JButton futureButton = new JButton(future.getMoveString() + " (" + String.format("%.2f", future.totalAdvantage()) + ")");
+                if (!future.getFutures().isEmpty()) {
                     futureButton.addActionListener(this);
                 }
                 buttons.put(future.getMoveCode(), futureButton);

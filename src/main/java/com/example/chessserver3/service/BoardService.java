@@ -4,6 +4,7 @@ import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.exception.UnsupportedDepthException;
 import com.example.chessserver3.model.board.Board;
+import com.example.chessserver3.model.board.FEN;
 import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
@@ -41,7 +42,7 @@ public class BoardService {
                 .id(new ObjectId().toHexString())
                 .white(white)
                 .black(black)
-                .fenString(initialFEN)
+                .fen(new FEN(initialFEN))
                 .lastMove(firstMove)
                 .history(new ArrayList<>())
                 .shallow(false)
@@ -77,6 +78,7 @@ public class BoardService {
     public Board getBoard(String boardId) {
         Board board = boardRepository.findById(boardId);
         if (board != null) {
+            board.getFen().build();
             board.update();
             return board;
         } else {
@@ -128,7 +130,7 @@ public class BoardService {
         Board board = getBoard(boardId);
         if (board.getHistory().size() - 1 != moveNumber) {
             Board copyBoard = Board.builder()
-                    .fenString(board.getHistory().get(moveNumber).getFEN())
+                    .fen(new FEN(board.getHistory().get(moveNumber).getFen()))
                     .lastMove(firstMove)
                     .history(board.getHistory())
                     .shallow(true)

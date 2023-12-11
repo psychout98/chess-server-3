@@ -52,6 +52,9 @@ public class Move {
     private double advantage;
     @JsonIgnore
     @BsonIgnore
+    private double strategicAdvantage;
+    @JsonIgnore
+    @BsonIgnore
     private boolean checkmate;
     @JsonIgnore
     @BsonIgnore
@@ -310,8 +313,9 @@ public class Move {
             System.out.println(e.getMessage());
             valid = false;
         }
-        futures = new ArrayList<>(copyBoard.getMoves().values());
-        goodFutures = new ArrayList<>(futures.stream().filter(Move::isValid).filter(Move::isMyMove).toList());
+        futures = new ArrayList<>(copyBoard.getMoves().values().stream().filter(Move::isValid).toList());
+        goodFutures = new ArrayList<>(futures.stream().filter(Move::isMyMove).toList());
+        strategicAdvantage = calculateStrategicAdvantage();
     }
 
     private void calculateAdvantage(HashMap<String, Move> positionMap) {
@@ -321,7 +325,7 @@ public class Move {
             if (bestMove == null || checkmate) {
                 advantage = white ? 100 : -100;
             } else {
-                advantage = bestMove.advantage + calculateStrategicAdvantage();
+                advantage = bestMove.advantage + strategicAdvantage;
             }
         } else {
             advantage = calculateMaterialAdvantage(fenString);
@@ -391,6 +395,7 @@ public class Move {
                     goodFutures.add(mappedPosition);
                 }
             }
+            futures.clear();
         }
         calculateAdvantage(positionMap);
     }
@@ -406,31 +411,32 @@ public class Move {
                     return goodFutures.stream().findFirst().get();
                 }
                 buildTree(0, i, positionMap);
-                System.out.println(i + " " + sumNodes());
                 positionMap = new HashMap<>();
                 calculateMaterialAdvantage(fenString);
+                int before = sumGoodFutures();
                 pruneFutures(0, i);
+//                System.out.println(i + " " + sumGoodFutures() + " / " + before);
             }
             if (goodFutures.size() == 1) {
                 return goodFutures.stream().findFirst().get();
             }
             buildTree(0, maxDepth, positionMap);
+//            System.out.println(maxDepth + " " + sumGoodFutures());
         } else {
             buildTree(0, maxDepth, positionMap);
         }
-        if (futures.isEmpty()) {
+        if (goodFutures.isEmpty()) {
             return null;
         } else {
-            System.out.println(maxDepth + " " + sumNodes());
             return findHighestAdvantage();
         }
     }
 
-    int sumNodes() {
+    int sumGoodFutures() {
         if (goodFutures.isEmpty()) {
             return 0;
         } else {
-            return goodFutures.size() + goodFutures.stream().map(Move::sumNodes).mapToInt(Integer::intValue).sum();
+            return goodFutures.size() + goodFutures.stream().map(Move::sumGoodFutures).mapToInt(Integer::intValue).sum();
         }
     }
 
@@ -455,7 +461,7 @@ public class Move {
             Move bestFuture = findHighestAdvantage();
             if (bestFuture != null) {
                 int i = 1;
-                while (goodFutures.size() > 2 && i < 6) {
+                while (goodFutures.size() > 2 && i < 10) {
                     double range = 30 * Math.pow(0.3, i);
                     goodFutures.removeIf(future -> white ? future.advantage > bestFuture.advantage + range : future.advantage < bestFuture.advantage - range);
                     i++;

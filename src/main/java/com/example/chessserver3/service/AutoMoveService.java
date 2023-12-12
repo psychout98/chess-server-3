@@ -29,15 +29,6 @@ public class AutoMoveService {
             Move currentMove = board.getLastMove();
             try {
                 board.move(currentMove.findBestFuture(depth).getMoveCode());
-            } catch (OutOfMemoryError e) {
-                System.out.println(e.getMessage());
-                if (depth > 1) {
-                    System.out.println("Reducing depth");
-                    currentMove.getFutures().clear();
-                    autoMove(board, depth - 1);
-                } else {
-                    board.resign(board.getFen().isWhiteToMove());
-                }
             } catch (Exception e) {
                 System.out.println(e.getMessage());
                 System.out.println(Arrays.stream(e.getStackTrace()).map(element -> element.getFileName() + ":" + element.getLineNumber()).toList());

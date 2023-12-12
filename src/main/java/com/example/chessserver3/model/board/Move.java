@@ -101,7 +101,6 @@ public class Move {
         fenString = FEN.updateFEN(previousFen, boardKey, key, endCol, pushTwo ? enPassantTarget() : "-");
         position = FEN.getBoardField(fenString);
         futures = new ArrayList<>();
-        futures = new ArrayList<>();
         calculateMaterialAdvantage();
         calculatePositionAdvantage();
         strategicAdvantage = 0;

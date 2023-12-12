@@ -200,7 +200,7 @@ public class Board {
         }
         Move move = moves.get(moveCode);
         if (move != null && move.isValid() && move.isMyMove()) {
-            history.add(new PGN(move.getMoveString(), move.getMoveCode(), move.getFenString()));
+            history.add(new PGN(move.getKey(), move.getMoveString(), move.getMoveCode(), move.getFenString()));
             lastMove = move;
             fen = new FEN(move.getFenString());
             update();

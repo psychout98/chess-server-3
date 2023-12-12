@@ -2,7 +2,6 @@ package com.example.chessserver3.service;
 
 import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
-import com.example.chessserver3.exception.UnsupportedDepthException;
 import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.FEN;
 import com.example.chessserver3.model.board.Move;
@@ -25,8 +24,6 @@ public class BoardService {
     private BoardRepository boardRepository;
     @Autowired
     private UserService userService;
-    @Autowired
-    private AutoMoveService autoMoveService;
     private final static String initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     private final static Move firstMove = new Move();
     static {
@@ -35,7 +32,6 @@ public class BoardService {
         firstMove.setMoveString("-");
         firstMove.setKey('x');
     }
-    private final static Random random = new Random();
 
     public Board createBoard(Player white, Player black) {
         Board board = Board.builder()
@@ -48,10 +44,6 @@ public class BoardService {
                 .shallow(false)
                 .build();
         board.update();
-        if (white != null && Objects.equals(white.getName(), "computer")) {
-            List<Move> moves = board.getMoves().values().stream().filter(Move::isValid).filter(Move::isMyMove).toList();
-            board.move(moves.get(random.nextInt(moves.size() - 1)).getMoveCode());
-        }
         boardRepository.create(board);
         if (white != null) {
             userService.addGameToUser(white.getId(), board.getId());
@@ -104,26 +96,7 @@ public class BoardService {
             }
         }
         boardRepository.update(board);
-//        if (Objects.equals(board.getWhite().getName(), "computer")) {
-//            computerMove(board, true);
-//        } else if (Objects.equals(board.getBlack().getName(), "computer")) {
-//            computerMove(board, false);
-//        }
         return board;
-    }
-
-    private void computerMove(Board board, boolean white) {
-        String id = white ? board.getWhite().getId() : board.getBlack().getId();
-        try {
-            int depth = Integer.parseInt(id.split("-")[1]);
-            if (depth < 10) {
-                autoMoveService.autoMove(board, depth);
-            } else {
-                throw new UnsupportedDepthException("Level 10 and above not yet supported by system");
-            }
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-            throw new UnsupportedDepthException("Unsupported or invalid depth provided");
-        }
     }
 
     public Board getBoardAtMove(String boardId, int moveNumber) {

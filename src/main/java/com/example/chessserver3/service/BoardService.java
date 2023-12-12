@@ -104,11 +104,11 @@ public class BoardService {
             }
         }
         boardRepository.update(board);
-        if (Objects.equals(board.getWhite().getName(), "computer")) {
-            computerMove(board, true);
-        } else if (Objects.equals(board.getBlack().getName(), "computer")) {
-            computerMove(board, false);
-        }
+//        if (Objects.equals(board.getWhite().getName(), "computer")) {
+//            computerMove(board, true);
+//        } else if (Objects.equals(board.getBlack().getName(), "computer")) {
+//            computerMove(board, false);
+//        }
         return board;
     }
 

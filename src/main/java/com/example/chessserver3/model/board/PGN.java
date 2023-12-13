@@ -8,7 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 public class PGN {
 
-    private char movingPiece;
     private String moveString;
     private String moveCode;
     private String fen;

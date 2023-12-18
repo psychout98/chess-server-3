@@ -78,8 +78,13 @@ public class AnalysisBoard extends RecursiveAction {
             ForkJoinTask.invokeAll(futures);
         }
         futures.removeIf(future -> !future.valid);
-        AnalysisBoard bestFuture = shortFen.isWhiteToMove() ? Collections.max(futures, AdvantageComparator.advantageComparator) : Collections.min(futures, AdvantageComparator.advantageComparator);
-        bestMoveCode = bestFuture.lastMoveCode;
-        advantage = bestFuture.getAdvantage();
+        try {
+            AnalysisBoard bestFuture = shortFen.isWhiteToMove() ? Collections.max(futures, AdvantageComparator.advantageComparator) : Collections.min(futures, AdvantageComparator.advantageComparator);
+            bestMoveCode = bestFuture.lastMoveCode;
+            advantage = bestFuture.getAdvantage();
+        } catch (NoSuchElementException ignored) {
+            bestMoveCode = "resign";
+            advantage = shortFen.isWhiteToMove() ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        }
     }
 }

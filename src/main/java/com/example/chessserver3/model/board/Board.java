@@ -27,8 +27,7 @@ public class Board {
     private boolean stalemate;
     @BsonIgnore
     private Map<String, Move> moves;
-    @BsonIgnore
-    private Move lastMove;
+    private String lastMoveCode;
     @BsonIgnore
     @Builder.Default
     private boolean shallow = false;
@@ -55,23 +54,23 @@ public class Board {
     private final static Boolean[][] queenMoves = new Boolean[15][15];
     @BsonIgnore
     @JsonIgnore
-    private final static HashMap<Character, Boolean[][]> moveMaps = new HashMap<>();
+    public final static HashMap<Character, Boolean[][]> moveMaps = new HashMap<>();
     @BsonIgnore
     @JsonIgnore
-    private final static HashMap<Character, int[]> pieceLocations = new HashMap<>();
+    public final static HashMap<Character, byte[]> pieceLocations = new HashMap<>();
     static {
-        pieceLocations.put('k', new int[]{1,2});
-        pieceLocations.put('K', new int[]{1,2});
-        pieceLocations.put('p', new int[]{0,1});
-        pieceLocations.put('P', new int[]{2,1});
-        pieceLocations.put('n', new int[]{2,2});
-        pieceLocations.put('N', new int[]{2,2});
-        pieceLocations.put('b', new int[]{7,7});
-        pieceLocations.put('B', new int[]{7,7});
-        pieceLocations.put('r', new int[]{7,7});
-        pieceLocations.put('R', new int[]{7,7});
-        pieceLocations.put('q', new int[]{7,7});
-        pieceLocations.put('Q', new int[]{7,7});
+        pieceLocations.put('k', new byte[]{1,2});
+        pieceLocations.put('K', new byte[]{1,2});
+        pieceLocations.put('p', new byte[]{0,1});
+        pieceLocations.put('P', new byte[]{2,1});
+        pieceLocations.put('n', new byte[]{2,2});
+        pieceLocations.put('N', new byte[]{2,2});
+        pieceLocations.put('b', new byte[]{7,7});
+        pieceLocations.put('B', new byte[]{7,7});
+        pieceLocations.put('r', new byte[]{7,7});
+        pieceLocations.put('R', new byte[]{7,7});
+        pieceLocations.put('q', new byte[]{7,7});
+        pieceLocations.put('Q', new byte[]{7,7});
         for (int i=0; i<15; i++) {
             for (int j=0; j<15; j++) {
                 rookMoves[i][j] = false;
@@ -79,8 +78,8 @@ public class Board {
                 queenMoves[i][j] = false;
             }
         }
-        for (int i=0;i<15;i++) {
-            for (int j=0;j<15;j++) {
+        for (byte i=0;i<15;i++) {
+            for (byte j=0;j<15;j++) {
                 if (i == 7 && j != 7) {
                     rookMoves[i][j] = true;
                     queenMoves[i][j] = true;
@@ -113,11 +112,11 @@ public class Board {
         moveMaps.put('Q', queenMoves);
     }
 
-    public static int[] spaceToSpace(String space) {
-        return new int[]{56 - space.charAt(1), (char) (space.charAt(0) - 97)};
+    public static byte[] spaceToSpace(String space) {
+        return new byte[]{(byte) (56 - space.charAt(1)), (byte) (space.charAt(0) - 97)};
     }
 
-    public static String spaceToSpace(int[] space) {
+    public static String spaceToSpace(byte[] space) {
         return String.format("%s%s", (char) (space[1] + 97), (char) (56 - space[0]));
     }
 
@@ -138,19 +137,19 @@ public class Board {
 
     private void addMoves() {
         char[][] boardKey = fen.getBoardKey();
-        for (int i=0;i<8;i++) {
-            for (int j=0;j<8;j++) {
+        for (byte i=0;i<8;i++) {
+            for (byte j=0;j<8;j++) {
                 if (boardKey[i][j] != 'x') {
                     Boolean[][] moveMap = moveMaps.get(boardKey[i][j]);
-                    for (int k = 0; k < moveMap.length; k++) {
-                        for (int l = 0; l < moveMap[k].length; l++) {
+                    for (byte k = 0; k < moveMap.length; k++) {
+                        for (byte l = 0; l < moveMap[k].length; l++) {
                             if (moveMap[k][l]) {
-                                int[] location = pieceLocations.get(boardKey[i][j]);
-                                int row = i + (k - location[0]);
-                                int col = j + (l - location[1]);
+                                byte[] location = pieceLocations.get(boardKey[i][j]);
+                                byte row = (byte) (i + (k - location[0]));
+                                byte col = (byte) (j + (l - location[1]));
                                 if (row >= 0 && row < 8 && col >= 0 && col < 8) {
-                                    int[] moveArray = {i, j, row, col};
-                                    Move move = new Move(boardKey[i][j], moveArray, fen);
+                                    byte[] moveArray = {i, j, row, col};
+                                    Move move = new Move(moveArray, fen);
                                     moves.put(move.getMoveCode(), move);
                                 }
                             }
@@ -201,7 +200,7 @@ public class Board {
         Move move = moves.get(moveCode);
         if (move != null && move.isValid() && move.isMyMove()) {
             history.add(new PGN(move.getMoveString(), move.getMoveCode(), fen.getFen()));
-            lastMove = move;
+            lastMoveCode = moveCode;
             fen = new FEN(move.getFenString());
             update();
         } else {

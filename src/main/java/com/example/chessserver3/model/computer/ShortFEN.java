@@ -1,12 +1,12 @@
-package com.example.chessserver3.model.board;
+package com.example.chessserver3.model.computer;
 
 import com.example.chessserver3.exception.InvalidFENException;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.example.chessserver3.model.board.Board;
+import com.example.chessserver3.model.board.FEN;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.bson.codecs.pojo.annotations.BsonIgnore;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,40 +14,18 @@ import java.util.Map;
 import java.util.Objects;
 
 @Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class FEN {
+public class ShortFEN {
 
-    private String fen;
-    @BsonIgnore
+    private final String fen;
     private char[][] boardKey = new char[8][8];
-    @BsonIgnore
+    private String boardCode;
     private boolean whiteToMove;
-    @JsonIgnore
-    @BsonIgnore
     private String castles;
-    @JsonIgnore
-    @BsonIgnore
     private byte[] enPassantTarget;
-    @JsonIgnore
-    @BsonIgnore
-    private int halfMoveClock;
-    @JsonIgnore
-    @BsonIgnore
-    private int fullMoveNumber;
-    @JsonIgnore
-    @BsonIgnore
-    public final static String validChars = "rRnNbBkKqQpP";
-    @JsonIgnore
-    @BsonIgnore
-    public final static String validCastles = "KQkq-";
 
     public void build() {
         String[] fields = fen.split(" ");
-        if (fields.length != 6) {
-            throw new InvalidFENException("Incorrect FEN format : \"" + fen + "\"");
-        }
+        boardCode = fields[0];
         loadBoardKey(fields[0]);
         if (Objects.equals(fields[1], "w")) {
             whiteToMove = true;
@@ -56,17 +34,15 @@ public class FEN {
         } else {
             throw new InvalidFENException("Incorrect FEN format : \"" + fen + "\"");
         }
-        if (Arrays.stream(fields[2].split("")).anyMatch(key -> !validCastles.contains(key))) {
+        if (Arrays.stream(fields[2].split("")).anyMatch(key -> !FEN.validCastles.contains(key))) {
             throw new InvalidFENException("Invalid castle field: " + fields[2]);
         } else {
             castles = fields[2];
         }
         enPassantTarget = Objects.equals(fields[3], "-") ? null : Board.spaceToSpace(fields[3]);
-        halfMoveClock = Integer.parseInt(fields[4]);
-        fullMoveNumber = Integer.parseInt(fields[5]);
     }
 
-    public FEN(String fen) {
+    public ShortFEN(String fen) {
         this.fen = fen;
         build();
     }
@@ -77,7 +53,7 @@ public class FEN {
             for (int i = 0; i < 8; i++) {
                 int j = 0;
                 for (char c : splitBoard[i].toCharArray()) {
-                    if (validChars.contains(String.valueOf(c))) {
+                    if (FEN.validChars.contains(String.valueOf(c))) {
                         boardKey[i][j] = c;
                         j++;
                     } else if (c > 47 && c < 58) {
@@ -121,18 +97,14 @@ public class FEN {
         return FEN.toString();
     }
 
-    public static String updateFEN(FEN previousFEN, char[][] boardKey, char key, int endCol, String enPassantTarget) {
-        return boardKeyToFEN(boardKey) +
+    public static ShortFEN updateFEN(ShortFEN previousShortFEN, char[][] boardKey, char key, int endCol, String enPassantTarget) {
+        return new ShortFEN(boardKeyToFEN(boardKey) +
                 " " +
-                (previousFEN.whiteToMove ? "b" : "w") +
+                (previousShortFEN.whiteToMove ? "b" : "w") +
                 " " +
-                updateCastle(previousFEN.castles, key, endCol) +
+                updateCastle(previousShortFEN.castles, key, endCol) +
                 " " +
-                enPassantTarget +
-                " " +
-                (previousFEN.halfMoveClock + 1) +
-                " " +
-                (previousFEN.fullMoveNumber + (previousFEN.whiteToMove ? 0 : 1));
+                enPassantTarget);
     }
 
     public static String updateCastle(String oldCastle, char key, int startCol) {
@@ -171,10 +143,6 @@ public class FEN {
         } else {
             return castle.toString();
         }
-    }
-
-    public static String getBoardField(String FEN) {
-        return FEN.split(" ")[0];
     }
 
 }

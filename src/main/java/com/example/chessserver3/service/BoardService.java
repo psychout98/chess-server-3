@@ -4,7 +4,6 @@ import com.example.chessserver3.exception.BoardNotFoundException;
 import com.example.chessserver3.exception.InvalidMoveException;
 import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.FEN;
-import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.board.Player;
 import com.example.chessserver3.repository.BoardRepository;
 import org.bson.types.ObjectId;
@@ -24,14 +23,9 @@ public class BoardService {
     private BoardRepository boardRepository;
     @Autowired
     private UserService userService;
+    @Autowired
+    private AutoMoveService autoMoveService;
     private final static String initialFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    private final static Move firstMove = new Move();
-    static {
-        firstMove.setFenString(initialFEN);
-        firstMove.setMoveCode("");
-        firstMove.setMoveString("-");
-        firstMove.setKey('x');
-    }
 
     public Board createBoard(Player white, Player black) {
         Board board = Board.builder()
@@ -39,14 +33,18 @@ public class BoardService {
                 .white(white)
                 .black(black)
                 .fen(new FEN(initialFEN))
-                .lastMove(firstMove)
+                .lastMoveCode("")
                 .history(new ArrayList<>())
                 .shallow(false)
                 .build();
         board.update();
         boardRepository.create(board);
         if (white != null) {
-            userService.addGameToUser(white.getId(), board.getId());
+            if (Objects.equals(white.getName(), "computer")) {
+                autoMoveService.autoMove(board, (byte) Integer.parseInt(white.getId().split("-")[1]));
+            } else {
+                userService.addGameToUser(white.getId(), board.getId());
+            }
         }
         if (black != null) {
             userService.addGameToUser(black.getId(), board.getId());
@@ -72,9 +70,20 @@ public class BoardService {
         if (board != null) {
             board.getFen().build();
             board.update();
+            autoMove(board);
             return board;
         } else {
             throw new BoardNotFoundException("Board id=" + boardId + " not found");
+        }
+    }
+
+    private void autoMove(Board board) {
+        if (board.getWinner() == 0) {
+            if (Objects.equals(board.getWhite().getName(), "computer") && board.getFen().isWhiteToMove()) {
+                autoMoveService.autoMove(board, (byte) Integer.parseInt(board.getWhite().getId().split("-")[1]));
+            } else if (Objects.equals(board.getBlack().getName(), "computer") && !board.getFen().isWhiteToMove()) {
+                autoMoveService.autoMove(board, (byte) Integer.parseInt(board.getBlack().getId().split("-")[1]));
+            }
         }
     }
 
@@ -95,6 +104,7 @@ public class BoardService {
                 throw new InvalidMoveException("Invalid Id");
             }
         }
+        autoMove(board);
         boardRepository.update(board);
         return board;
     }
@@ -104,7 +114,6 @@ public class BoardService {
         if (board.getHistory().size() - 1 != moveNumber) {
             Board copyBoard = Board.builder()
                     .fen(new FEN(board.getHistory().get(moveNumber).getFen()))
-                    .lastMove(firstMove)
                     .history(board.getHistory())
                     .shallow(true)
                     .build();

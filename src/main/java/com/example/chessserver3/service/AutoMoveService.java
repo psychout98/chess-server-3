@@ -33,7 +33,7 @@ public class AutoMoveService {
             commonPool.invoke(analysisBoard);
 //            long endTime = System.nanoTime();
 //            System.out.println(analysisBoard.getPossibleMoves() + " moves checked");
-//            System.out.println((double) 1000000000 * analysisBoard.getEvaluatedMoves() / (endTime - startTime) + " moves per second");
+//            System.out.println(1000000000 * analysisBoard.getEvaluatedMoves() / (endTime - startTime) + " moves per second");
             board.move(analysisBoard.getBestMoveCode());
             boardRepository.update(board);
             template.convertAndSend("/board/" + board.getId(), "computer");

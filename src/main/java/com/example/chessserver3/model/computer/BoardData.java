@@ -14,7 +14,7 @@ import static com.example.chessserver3.model.board.Move.pointValues;
 @AllArgsConstructor
 public class BoardData {
 
-    private final char[][] boardKey;
+    private String boardKey;
     private final boolean whiteToMove;
     private final String castles;
     private final byte[] enPassantTarget;
@@ -23,7 +23,7 @@ public class BoardData {
     public BoardData(String fen) {
         materialAdvantage = 0;
         String[] fields = fen.split(" ");
-        boardKey = new char[8][8];
+        boardKey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
         loadBoardKey(fields[0]);
         if (Objects.equals(fields[1], "w")) {
             whiteToMove = true;
@@ -40,6 +40,10 @@ public class BoardData {
         enPassantTarget = Objects.equals(fields[3], "-") ? null : Board.spaceToSpace(fields[3]);
     }
 
+    public char keyAtSpace(byte row, byte col) {
+        return boardKey.charAt((8 * row) + col);
+    }
+
     public void loadBoardKey(String boardField) {
         String[] splitBoard = boardField.split("/");
         if (splitBoard.length == 8) {
@@ -47,13 +51,10 @@ public class BoardData {
                 byte j = 0;
                 for (char c : splitBoard[i].toCharArray()) {
                     if (FEN.validChars.contains(String.valueOf(c))) {
-                        boardKey[i][j] = c;
+                        boardKey = boardKey.substring(0, (8 * i) + j) + c + boardKey.substring((8 * i) + j + 1);
                         materialAdvantage += calculatePoints(c);
                         j++;
                     } else if (c > 47 && c < 58) {
-                        for (byte k = j; k < (j + c - 48); k++) {
-                            boardKey[i][k] = 'x';
-                        }
                         j += (byte) (c - 48);
                     } else {
                         throw new InvalidFENException("Invalid character \"" + c + "\" in FEN");
@@ -69,7 +70,7 @@ public class BoardData {
         return Objects.requireNonNullElse(pointValues.get(key), 0);
     }
 
-    public static BoardData updatedBoard(BoardData previousBoardData, char[][] boardKey, char key, char endKey, byte startCol, byte endCol, byte[] enPassantTarget, int newAdvantage) {
+    public static BoardData updatedBoard(BoardData previousBoardData, String boardKey, char key, char endKey, byte startCol, byte endCol, byte[] enPassantTarget, int newAdvantage) {
         return new BoardData(boardKey, !previousBoardData.whiteToMove, updateCastle(previousBoardData.castles, key, endKey, startCol, endCol), enPassantTarget, newAdvantage);
     }
 
@@ -117,11 +118,7 @@ public class BoardData {
                 castle.append(entry.getKey());
             }
         }
-        if (castle.isEmpty()) {
-            return "-";
-        } else {
-            return castle.toString();
-        }
+        return castle.toString();
     }
 
 }

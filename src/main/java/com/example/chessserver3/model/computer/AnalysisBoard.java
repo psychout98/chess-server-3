@@ -38,25 +38,32 @@ public class AnalysisBoard extends RecursiveAction {
         Collection<AnalysisBoard> futures = new ArrayList<>();
         for (byte i=0;i<8;i++) {
             for (byte j=0;j<8;j++) {
-                if (boardData.getBoardKey()[i][j] != 'x') {
-                    String pieceKey = String.format("%c%x%x", boardData.getBoardKey()[i][j], i, j);
+                char key = boardData.keyAtSpace(i, j);
+                if (key != 'x' &&
+                        (boardData.isWhiteToMove() ?
+                                Character.isUpperCase(key) :
+                                Character.isLowerCase(key))) {
+                    String pieceKey = String.format("%c%x%x", key, i, j);
                     List<MoveNode> moveNodes = Moves.moves.get(pieceKey);
                     for (MoveNode moveNode : moveNodes) {
                         while (moveNode != null) {
 //                            possibleMoves++;
                             try {
                                 ComputerMove computerMove = new ComputerMove(moveNode.getMoveArray(), boardData, depth, maxDepth);
-                                if (computerMove.isKingKiller()) {
+                                if (computerMove.getEndKey() == 'k' || computerMove.getEndKey() == 'K') {
                                     valid = false;
                                     break;
+                                } else if (computerMove.getEndKey() != 'x') {
+                                    moveNode = null;
+                                } else {
+                                    moveNode = moveNode.getNext();
                                 }
                                 futures.add(computerMove.getAnalysisBoard());
-                                moveNode = moveNode.getNext();
                             } catch (InvalidMoveException e) {
                                 if (e.getMoveException() == MoveException.OBSTRUCTED_PATH) {
                                     moveNode = null;
                                 } else {
-                                    moveNode = moveNode.getNext();
+                                    moveNode = moveNode != null ? moveNode.getNext() : null;
                                 }
                             }
                         }

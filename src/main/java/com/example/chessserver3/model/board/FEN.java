@@ -121,12 +121,12 @@ public class FEN {
         return FEN.toString();
     }
 
-    public static String updateFEN(FEN previousFEN, char[][] boardKey, char key, int endCol, String enPassantTarget) {
+    public static String updateFEN(FEN previousFEN, char[][] boardKey, char key, char endKey, byte startCol, byte endCol, String enPassantTarget) {
         return boardKeyToFEN(boardKey) +
                 " " +
                 (previousFEN.whiteToMove ? "b" : "w") +
                 " " +
-                updateCastle(previousFEN.castles, key, endCol) +
+                updateCastle(previousFEN.castles, key, endKey, startCol, endCol) +
                 " " +
                 enPassantTarget +
                 " " +
@@ -135,7 +135,7 @@ public class FEN {
                 (previousFEN.fullMoveNumber + (previousFEN.whiteToMove ? 0 : 1));
     }
 
-    public static String updateCastle(String oldCastle, char key, int startCol) {
+    public static String updateCastle(String oldCastle, char key, char endKey, byte startCol, byte endCol) {
         HashMap<Character, Boolean> castles = new HashMap<>();
         castles.put('K', oldCastle.contains("K"));
         castles.put('Q', oldCastle.contains("Q"));
@@ -157,6 +157,19 @@ public class FEN {
             if (startCol == 7) {
                 castles.put('k', false);
             } else if (startCol == 0) {
+                castles.put('q', false);
+            }
+        }
+        if (endKey == 'R') {
+            if (endCol == 7) {
+                castles.put('K', false);
+            } else if (startCol == 0) {
+                castles.put('Q', false);
+            }
+        } else if (endKey == 'r') {
+            if (endCol == 7) {
+                castles.put('k', false);
+            } else if (endCol == 0) {
                 castles.put('q', false);
             }
         }

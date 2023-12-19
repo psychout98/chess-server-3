@@ -78,7 +78,7 @@ public class BoardService {
     }
 
     private void autoMove(Board board) {
-        if (board.getWinner() == 0) {
+        if (board.getWinner() == 0 && board.getWhite() != null && board.getBlack() != null) {
             if (Objects.equals(board.getWhite().getName(), "computer") && board.getFen().isWhiteToMove()) {
                 autoMoveService.autoMove(board, (byte) Integer.parseInt(board.getWhite().getId().split("-")[1]));
             } else if (Objects.equals(board.getBlack().getName(), "computer") && !board.getFen().isWhiteToMove()) {

@@ -1,12 +1,10 @@
-package com.example.chessserver3.service;
-
-import com.example.chessserver3.model.computer.AnalysisBoard;
+package com.example.chessserver3.model.computer;
 
 import java.util.Comparator;
 
 public class AdvantageComparator implements Comparator<AnalysisBoard> {
 
-    public static final AdvantageComparator advantageComparator = new AdvantageComparator();
+    public static final AdvantageComparator comparator = new AdvantageComparator();
 
     @Override
     public int compare(AnalysisBoard a1, AnalysisBoard a2) {

@@ -92,7 +92,7 @@ public class Move {
         } else {
             runBasicMove(boardKey, free);
         }
-        fenString = FEN.updateFEN(previousFen, boardKey, key, endCol, pushTwo ? enPassantTarget() : "-");
+        fenString = FEN.updateFEN(previousFen, boardKey, key, endKey, startCol, endCol, pushTwo ? enPassantTarget() : "-");
         position = FEN.getBoardField(fenString);
         futures = new HashSet<>();
     }

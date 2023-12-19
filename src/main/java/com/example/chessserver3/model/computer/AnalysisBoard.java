@@ -1,7 +1,6 @@
 package com.example.chessserver3.model.computer;
 
-import com.example.chessserver3.model.board.Board;
-import com.example.chessserver3.service.AdvantageComparator;
+import com.example.chessserver3.exception.InvalidMoveException;
 import lombok.*;
 
 import java.util.*;
@@ -21,6 +20,7 @@ public class AnalysisBoard extends RecursiveAction {
     private final String lastMoveCode;
     private String bestMoveCode;
     private int advantage;
+//    private int count;
 
     public AnalysisBoard(ShortFEN shortFEN, byte depth, byte maxDepth, String lastMoveCode) {
         this.shortFen = shortFEN;
@@ -30,6 +30,7 @@ public class AnalysisBoard extends RecursiveAction {
         this.bestMoveCode = "resign";
         this.advantage = calculateAdvantage(shortFEN.getBoardCode());
         this.valid = true;
+//        this.count = 0;
     }
 
     private static int calculateAdvantage(String boardCode) {
@@ -46,45 +47,39 @@ public class AnalysisBoard extends RecursiveAction {
 
     @Override
     public void compute() {
-        Set<ComputerMove> moves = new HashSet<>();
-        char[][] boardKey = shortFen.getBoardKey();
+        Collection<AnalysisBoard> futures = new ArrayList<>();
         for (byte i=0;i<8;i++) {
             for (byte j=0;j<8;j++) {
-                if (boardKey[i][j] != 'x') {
-                    Boolean[][] moveMap = Board.moveMaps.get(boardKey[i][j]);
-                    for (byte k = 0; k < moveMap.length; k++) {
-                        for (byte l = 0; l < moveMap[k].length; l++) {
-                            if (moveMap[k][l]) {
-                                byte[] location = Board.pieceLocations.get(boardKey[i][j]);
-                                byte row = (byte) (i + (k - location[0]));
-                                byte col = (byte) (j + (l - location[1]));
-                                if (row >= 0 && row < 8 && col >= 0 && col < 8) {
-                                    byte[] moveArray = {i, j, row, col};
-                                    ComputerMove computerMove = new ComputerMove(moveArray, shortFen, depth, maxDepth);
-                                    if (computerMove.isValid()) {
-                                        moves.add(computerMove);
-                                    }
-                                }
+                if (shortFen.getBoardKey()[i][j] != 'x') {
+                    String pieceKey = String.format("%c%x%x", shortFen.getBoardKey()[i][j], i, j);
+                    List<byte[]> pieceMoves = Pieces.moves.get(pieceKey);
+                    for (byte[] moveArray : pieceMoves) {
+                        try {
+                            ComputerMove computerMove = new ComputerMove(moveArray, shortFen, depth, maxDepth);
+                            if (computerMove.isKingKiller()) {
+                                valid = false;
+                                break;
                             }
-                        }
+                            futures.add(computerMove.getAnalysisBoard());
+                        } catch (InvalidMoveException ignored) {}
                     }
                 }
             }
         }
-        valid = moves.stream()
-                .noneMatch(computerMove -> Objects.equals(shortFen.getBoardKey()[computerMove.getEndRow()][computerMove.getEndCol()], (shortFen.isWhiteToMove() ? 'k' : 'K')));
-        Collection<AnalysisBoard> futures = moves.stream().map(ComputerMove::getAnalysisBoard).collect(Collectors.toSet());
-        if (depth < maxDepth) {
-            ForkJoinTask.invokeAll(futures);
-        }
-        futures.removeIf(future -> !future.valid);
-        try {
-            AnalysisBoard bestFuture = shortFen.isWhiteToMove() ? Collections.max(futures, AdvantageComparator.advantageComparator) : Collections.min(futures, AdvantageComparator.advantageComparator);
-            bestMoveCode = bestFuture.lastMoveCode;
-            advantage = bestFuture.getAdvantage();
-        } catch (NoSuchElementException ignored) {
-            bestMoveCode = "resign";
-            advantage = shortFen.isWhiteToMove() ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+        if (valid) {
+            if (depth < maxDepth) {
+                ForkJoinTask.invokeAll(futures);
+            }
+            futures.removeIf(future -> !future.valid);
+            try {
+                AnalysisBoard bestFuture = shortFen.isWhiteToMove() ? Collections.max(futures, BoardComparator.comparator) : Collections.min(futures, BoardComparator.comparator);
+                bestMoveCode = bestFuture.lastMoveCode;
+                advantage = bestFuture.getAdvantage();
+            } catch (NoSuchElementException ignored) {
+                bestMoveCode = "resign";
+                advantage = shortFen.isWhiteToMove() ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+            }
+//            count = futures.size() + futures.stream().mapToInt(AnalysisBoard::getCount).sum();
         }
     }
 }

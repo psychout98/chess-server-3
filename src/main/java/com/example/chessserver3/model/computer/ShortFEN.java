@@ -8,10 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 public class ShortFEN {
@@ -50,17 +47,17 @@ public class ShortFEN {
     public void loadBoardKey(String boardField) {
         String[] splitBoard = boardField.split("/");
         if (splitBoard.length == 8) {
-            for (int i = 0; i < 8; i++) {
-                int j = 0;
+            for (byte i = 0; i < 8; i++) {
+                byte j = 0;
                 for (char c : splitBoard[i].toCharArray()) {
                     if (FEN.validChars.contains(String.valueOf(c))) {
                         boardKey[i][j] = c;
                         j++;
                     } else if (c > 47 && c < 58) {
-                        for (int k = j; k < (j + c - 48); k++) {
+                        for (byte k = j; k < (j + c - 48); k++) {
                             boardKey[i][k] = 'x';
                         }
-                        j += c - 48;
+                        j += (byte) (c - 48);
                     } else {
                         throw new InvalidFENException("Invalid character \"" + c + "\" in FEN");
                     }
@@ -73,9 +70,9 @@ public class ShortFEN {
 
     public static String boardKeyToFEN(char[][] boardKey) {
         StringBuilder FEN = new StringBuilder();
-        for (int i=0; i<8; i++) {
-            int k = 0;
-            for (int j=0; j<8; j++) {
+        for (byte i=0; i<8; i++) {
+            byte k = 0;
+            for (byte j=0; j<8; j++) {
                 char key = boardKey[i][j];
                 if (key == 'x' && j < 7) {
                     k++;
@@ -97,17 +94,17 @@ public class ShortFEN {
         return FEN.toString();
     }
 
-    public static ShortFEN updateFEN(ShortFEN previousShortFEN, char[][] boardKey, char key, int endCol, String enPassantTarget) {
+    public static ShortFEN updateFEN(ShortFEN previousShortFEN, char[][] boardKey, char key, char endKey, byte startCol, byte endCol, String enPassantTarget) {
         return new ShortFEN(boardKeyToFEN(boardKey) +
                 " " +
                 (previousShortFEN.whiteToMove ? "b" : "w") +
                 " " +
-                updateCastle(previousShortFEN.castles, key, endCol) +
+                updateCastle(previousShortFEN.castles, key, endKey, startCol, endCol) +
                 " " +
                 enPassantTarget);
     }
 
-    public static String updateCastle(String oldCastle, char key, int startCol) {
+    public static String updateCastle(String oldCastle, char key, char endKey, byte startCol, byte endCol) {
         HashMap<Character, Boolean> castles = new HashMap<>();
         castles.put('K', oldCastle.contains("K"));
         castles.put('Q', oldCastle.contains("Q"));
@@ -129,6 +126,19 @@ public class ShortFEN {
             if (startCol == 7) {
                 castles.put('k', false);
             } else if (startCol == 0) {
+                castles.put('q', false);
+            }
+        }
+        if (endKey == 'R') {
+            if (endCol == 7) {
+                castles.put('K', false);
+            } else if (startCol == 0) {
+                castles.put('Q', false);
+            }
+        } else if (endKey == 'r') {
+            if (endCol == 7) {
+                castles.put('k', false);
+            } else if (endCol == 0) {
                 castles.put('q', false);
             }
         }

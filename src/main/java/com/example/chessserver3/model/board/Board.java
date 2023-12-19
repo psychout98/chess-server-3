@@ -123,7 +123,7 @@ public class Board {
     public void resign(boolean white) {
         winner = white ? 2 : 1;
     }
-
+    //jacobs bad at chess now
     public void update() {
             moves = new HashMap<>();
         if (winner == 0) {

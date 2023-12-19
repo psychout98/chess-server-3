@@ -31,6 +31,7 @@ public class AutoMoveService {
             AnalysisBoard analysisBoard = new AnalysisBoard(shortFEN, (byte) 0, level, board.getLastMoveCode());
             ForkJoinPool commonPool = ForkJoinPool.commonPool();
             commonPool.invoke(analysisBoard);
+//            System.out.println(analysisBoard.getCount());
             board.move(analysisBoard.getBestMoveCode());
             boardRepository.update(board);
             template.convertAndSend("/board/" + board.getId(), "computer");

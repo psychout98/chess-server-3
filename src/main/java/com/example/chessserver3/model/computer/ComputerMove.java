@@ -1,9 +1,11 @@
 package com.example.chessserver3.model.computer;
 
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.example.chessserver3.exception.MoveException;
 import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.Castle;
 import lombok.*;
+import java.util.Objects;
 
 import static com.example.chessserver3.model.board.Move.*;
 
@@ -24,15 +26,15 @@ public class ComputerMove {
     private boolean kingKiller;
     private final AnalysisBoard analysisBoard;
 
-    public ComputerMove(final byte[] moveArray, final ShortFEN previousShortFEN, byte depth, byte maxDepth) {
+    public ComputerMove(final byte[] moveArray, final BoardData previousBoardData, byte depth, byte maxDepth) {
         startRow = moveArray[0];
         startCol = moveArray[1];
         endRow = moveArray[2];
         endCol = moveArray[3];
-        key = previousShortFEN.getBoardKey()[startRow][startCol];
+        key = previousBoardData.getBoardKey()[startRow][startCol];
         white = Character.isUpperCase(key);
-        if (white != previousShortFEN.isWhiteToMove()) {
-            throw new InvalidMoveException("Not your turn");
+        if (white != previousBoardData.isWhiteToMove()) {
+            throw new InvalidMoveException(MoveException.NOT_YOUR_TURN);
         }
         enPassant = false;
         castleMove = false;
@@ -40,28 +42,29 @@ public class ComputerMove {
         kingKiller = false;
         moveCode = String.format("%s%s%s%s", startRow, startCol, endRow, endCol);
         boolean pawnMove = key == 'p' || key == 'P';
-        char[][] boardKey = Board.copyBoardKey(previousShortFEN.getBoardKey());
+        char[][] boardKey = Board.copyBoardKey(previousBoardData.getBoardKey());
         endKey = boardKey[endRow][endCol];
+        int newAdvantage = previousBoardData.getMaterialAdvantage() - Objects.requireNonNullElse(pointValues.get(endKey), 0);
         if (isObstructed(boardKey)) {
-            throw new InvalidMoveException("Obstruction");
+            throw new InvalidMoveException(MoveException.OBSTRUCTED_PATH);
         }
         if (pawnMove) {
-            runPawnMove(boardKey, previousShortFEN.getEnPassantTarget());
-        } else if ((key == 'k' || key == 'K') && castle.get(moveCode) != null && previousShortFEN.getCastles().contains(Castle.castleKeys.get(moveCode))) {
+            runPawnMove(boardKey, previousBoardData.getEnPassantTarget());
+        } else if ((key == 'k' || key == 'K') && castle.get(moveCode) != null && previousBoardData.getCastles().contains(Castle.castleKeys.get(moveCode))) {
             runCastle(boardKey);
         } else if ((key == 'k' || key == 'K') && Math.abs(endCol - startCol) == 2) {
-            throw new InvalidMoveException("Invalid castle");
+            throw new InvalidMoveException(MoveException.INVALID_CASTLE);
         } else {
             runBasicMove(boardKey);
         }
         if (white ? endKey == 'k' : endKey == 'K') {
             kingKiller = true;
         }
-        analysisBoard = new AnalysisBoard(ShortFEN.updateFEN(previousShortFEN, boardKey, key, endKey, startCol, endCol, pushTwo ? enPassantTarget() : "-"), (byte) (depth + 1), maxDepth, moveCode);
+        analysisBoard = new AnalysisBoard(BoardData.updatedBoard(previousBoardData, boardKey, key, endKey, startCol, endCol, pushTwo ? enPassantTarget() : null, newAdvantage), (byte) (depth + 1), maxDepth, moveCode);
     }
 
-    private String enPassantTarget() {
-        return Board.spaceToSpace(new byte[]{(byte) (white ? startRow - 1 : startRow + 1), startCol});
+    private byte[] enPassantTarget() {
+        return new byte[]{(byte) (white ? startRow - 1 : startRow + 1), startCol};
     }
 
     private boolean isObstructed(char[][] boardKey) {
@@ -71,10 +74,10 @@ public class ComputerMove {
             obstructed = !open;
         }
         if (queensAndBishops.contains(String.valueOf(key))) {
-            obstructed = diagonalObstruction(boardKey) || !open;
+            obstructed = !open || diagonalObstruction(boardKey);
         }
         if (queensAndRooksAndPawns.contains(String.valueOf(key))) {
-            obstructed = obstructed || (straightObstruction(boardKey) || !open);
+            obstructed = !open || obstructed || straightObstruction(boardKey);
         }
         return obstructed;
     }
@@ -156,14 +159,14 @@ public class ComputerMove {
             if (endKey == 'x' && (white ? startRow == 6 : startRow == 1)) {
                 runBasicMove(boardKey);
             } else {
-                throw new InvalidMoveException("Invalid push two");
+                throw new InvalidMoveException(MoveException.INVALID_PUSH_TWO);
             }
         } else if (startCol != endCol) {
             if (isEnPassant(enPassantTarget)) {
                 runEnPassant(boardKey);
             } else {
                 if (endKey == 'x' || Character.isLowerCase(key) == Character.isLowerCase(endKey)) {
-                    throw new InvalidMoveException("Invalid pawn attack");
+                    throw new InvalidMoveException(MoveException.INVALID_PAWN_ATTACK);
                 }
                 if (endRow == (white ? 0 : 7)) {
                     runQueenPromotion(boardKey);
@@ -173,7 +176,7 @@ public class ComputerMove {
             }
         } else {
             if (endKey != 'x') {
-                throw new InvalidMoveException("Obstructed pawn push");
+                throw new InvalidMoveException(MoveException.INVALID_PUSH_ONE);
             }
             if (endRow == (white ? 0 : 7)) {
                 runQueenPromotion(boardKey);
@@ -199,7 +202,7 @@ public class ComputerMove {
     private void runCastle(char[][] boardKey) {
         for (byte[] space : Castle.castleRoutes.get(moveCode)) {
             if (boardKey[space[0]][space[1]] != 'x') {
-                throw new InvalidMoveException("Obstructed castle");
+                throw new InvalidMoveException(MoveException.INVALID_CASTLE);
             }
         }
         castleMove = true;

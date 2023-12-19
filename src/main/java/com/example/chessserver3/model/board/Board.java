@@ -1,6 +1,7 @@
 package com.example.chessserver3.model.board;
 
 import com.example.chessserver3.exception.InvalidMoveException;
+import com.example.chessserver3.exception.MoveException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import org.bson.codecs.pojo.annotations.BsonId;
@@ -188,7 +189,7 @@ public class Board {
 
     public void move(String moveCode) {
         if (winner != 0) {
-            throw new InvalidMoveException("Game is over");
+            throw new InvalidMoveException(MoveException.GAME_IS_OVER);
         }
         if (moveCode.length() == 4) {
             if (!Arrays.stream(moveCodeToMove(moveCode)).allMatch(i -> i < 8 && i >= 0)) {

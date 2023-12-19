@@ -5,24 +5,25 @@ import com.example.chessserver3.model.board.Board;
 import com.example.chessserver3.model.board.FEN;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import java.util.*;
 
+import static com.example.chessserver3.model.board.Move.pointValues;
+
 @Getter
-public class ShortFEN {
+@AllArgsConstructor
+public class BoardData {
 
-    private final String fen;
-    private char[][] boardKey = new char[8][8];
-    private String boardCode;
-    private boolean whiteToMove;
-    private String castles;
-    private byte[] enPassantTarget;
+    private final char[][] boardKey;
+    private final boolean whiteToMove;
+    private final String castles;
+    private final byte[] enPassantTarget;
+    private int materialAdvantage;
 
-    public void build() {
+    public BoardData(String fen) {
+        materialAdvantage = 0;
         String[] fields = fen.split(" ");
-        boardCode = fields[0];
+        boardKey = new char[8][8];
         loadBoardKey(fields[0]);
         if (Objects.equals(fields[1], "w")) {
             whiteToMove = true;
@@ -39,11 +40,6 @@ public class ShortFEN {
         enPassantTarget = Objects.equals(fields[3], "-") ? null : Board.spaceToSpace(fields[3]);
     }
 
-    public ShortFEN(String fen) {
-        this.fen = fen;
-        build();
-    }
-
     public void loadBoardKey(String boardField) {
         String[] splitBoard = boardField.split("/");
         if (splitBoard.length == 8) {
@@ -52,6 +48,7 @@ public class ShortFEN {
                 for (char c : splitBoard[i].toCharArray()) {
                     if (FEN.validChars.contains(String.valueOf(c))) {
                         boardKey[i][j] = c;
+                        materialAdvantage += calculatePoints(c);
                         j++;
                     } else if (c > 47 && c < 58) {
                         for (byte k = j; k < (j + c - 48); k++) {
@@ -68,40 +65,12 @@ public class ShortFEN {
         }
     }
 
-    public static String boardKeyToFEN(char[][] boardKey) {
-        StringBuilder FEN = new StringBuilder();
-        for (byte i=0; i<8; i++) {
-            byte k = 0;
-            for (byte j=0; j<8; j++) {
-                char key = boardKey[i][j];
-                if (key == 'x' && j < 7) {
-                    k++;
-                } else if (key == 'x') {
-                    k++;
-                    FEN.append(k);
-                } else {
-                    if (k > 0) {
-                        FEN.append(k);
-                        k = 0;
-                    }
-                    FEN.append(key);
-                }
-            }
-            if (i < 7) {
-                FEN.append("/");
-            }
-        }
-        return FEN.toString();
+    public static int calculatePoints(char key) {
+        return Objects.requireNonNullElse(pointValues.get(key), 0);
     }
 
-    public static ShortFEN updateFEN(ShortFEN previousShortFEN, char[][] boardKey, char key, char endKey, byte startCol, byte endCol, String enPassantTarget) {
-        return new ShortFEN(boardKeyToFEN(boardKey) +
-                " " +
-                (previousShortFEN.whiteToMove ? "b" : "w") +
-                " " +
-                updateCastle(previousShortFEN.castles, key, endKey, startCol, endCol) +
-                " " +
-                enPassantTarget);
+    public static BoardData updatedBoard(BoardData previousBoardData, char[][] boardKey, char key, char endKey, byte startCol, byte endCol, byte[] enPassantTarget, int newAdvantage) {
+        return new BoardData(boardKey, !previousBoardData.whiteToMove, updateCastle(previousBoardData.castles, key, endKey, startCol, endCol), enPassantTarget, newAdvantage);
     }
 
     public static String updateCastle(String oldCastle, char key, char endKey, byte startCol, byte endCol) {

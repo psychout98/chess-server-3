@@ -1,9 +1,8 @@
 package com.example.chessserver3.service;
 
 import com.example.chessserver3.model.board.Board;
-import com.example.chessserver3.model.board.Move;
 import com.example.chessserver3.model.computer.AnalysisBoard;
-import com.example.chessserver3.model.computer.ShortFEN;
+import com.example.chessserver3.model.computer.BoardData;
 import com.example.chessserver3.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,11 +26,14 @@ public class AutoMoveService {
     @Async
     public void autoMove(final Board board, final byte level) {
         if (board.getWinner() == 0) {
-            ShortFEN shortFEN = new ShortFEN(board.getFen().getFen());
-            AnalysisBoard analysisBoard = new AnalysisBoard(shortFEN, (byte) 0, level, board.getLastMoveCode());
+            BoardData boardData = new BoardData(board.getFen().getFen());
+            AnalysisBoard analysisBoard = new AnalysisBoard(boardData, (byte) 0, level, board.getLastMoveCode());
             ForkJoinPool commonPool = ForkJoinPool.commonPool();
+//            long startTime = System.nanoTime();
             commonPool.invoke(analysisBoard);
-//            System.out.println(analysisBoard.getCount());
+//            long endTime = System.nanoTime();
+//            System.out.println(analysisBoard.getPossibleMoves() + " moves checked");
+//            System.out.println((double) 1000000000 * analysisBoard.getEvaluatedMoves() / (endTime - startTime) + " moves per second");
             board.move(analysisBoard.getBestMoveCode());
             boardRepository.update(board);
             template.convertAndSend("/board/" + board.getId(), "computer");

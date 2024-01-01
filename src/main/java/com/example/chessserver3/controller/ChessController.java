@@ -59,12 +59,6 @@ public class ChessController {
         return new ResponseEntity<>(new BoardResponse(player, boardService.getBoard(boardId)), HttpStatus.OK);
     }
 
-    @GetMapping("/board/{boardId}/{moveNumber}")
-    public ResponseEntity<BoardResponse> getBoardAtMove(HttpSession session, @PathVariable String boardId, @PathVariable int moveNumber, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
-        Player player = new Player(playerName == null ? "anonymous" : playerName.toLowerCase(), playerId == null ? session.getId() : playerId);
-        return new ResponseEntity<>(new BoardResponse(player, boardService.getBoardAtMove(boardId, moveNumber)), HttpStatus.OK);
-    }
-
     @PutMapping("/board/{boardId}/join")
     public ResponseEntity<Player> join(HttpSession session, @PathVariable String boardId, @RequestHeader(value = "playerId", required = false) String playerId, @RequestHeader(value = "playerName", required = false) String playerName) {
         Player player = new Player(playerName == null ? "anonymous" : playerName.toLowerCase(), playerId == null ? session.getId() : playerId);

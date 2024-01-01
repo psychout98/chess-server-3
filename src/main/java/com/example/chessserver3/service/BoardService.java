@@ -109,21 +109,6 @@ public class BoardService {
         return board;
     }
 
-    public Board getBoardAtMove(String boardId, int moveNumber) {
-        Board board = getBoard(boardId);
-        if (board.getHistory().size() - 1 != moveNumber) {
-            Board copyBoard = Board.builder()
-                    .fen(new FEN(board.getHistory().get(moveNumber).getFen()))
-                    .history(board.getHistory())
-                    .shallow(true)
-                    .build();
-            copyBoard.update();
-            return copyBoard;
-        } else {
-            return board;
-        }
-    }
-
     public List<Board> getBoardsByPlayerName(String playerName) {
         return userService.getBoardIdsByPlayerName(playerName).stream().map(this::getBoard).collect(Collectors.toList());
     }

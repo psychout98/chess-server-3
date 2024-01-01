@@ -10,5 +10,5 @@ public class PGN {
 
     private String moveString;
     private String moveCode;
-    private String fen;
+    private String position;
 }

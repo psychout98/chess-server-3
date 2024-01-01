@@ -124,7 +124,7 @@ public class Board {
     public void resign(boolean white) {
         winner = white ? 2 : 1;
     }
-    //jacobs bad at chess now
+
     public void update() {
             moves = new HashMap<>();
         if (winner == 0) {
@@ -200,7 +200,7 @@ public class Board {
         }
         Move move = moves.get(moveCode);
         if (move != null && move.isValid() && move.isMyMove()) {
-            history.add(new PGN(move.getMoveString(), move.getMoveCode(), fen.getFen()));
+            history.add(new PGN(move.getMoveString(), move.getMoveCode(), move.getPosition()));
             lastMoveCode = moveCode;
             fen = new FEN(move.getFenString());
             update();
@@ -216,7 +216,7 @@ public class Board {
     private boolean isThreeFoldRep() {
         int i = 0;
         for (PGN move : history) {
-            if (Objects.equals(FEN.getBoardField(move.getFen()), FEN.getBoardField(fen.getFen()))) {
+            if (Objects.equals(FEN.getBoardField(move.getPosition()), FEN.getBoardField(fen.getFen()))) {
                 i++;
             }
             if (i > 2) {

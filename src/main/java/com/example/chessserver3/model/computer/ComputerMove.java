@@ -88,7 +88,7 @@ public class ComputerMove {
     private void runPawnMove(byte[] enPassantTarget) {
         if (Math.abs(endRow - startRow) == 2) {
             pushTwo = true;
-            if (endKey == 'x' && (white ? startRow == 6 : startRow == 1)) {
+            if (endKey == 'x' && (white ? startRow == 6 : startRow == 1) && keyAtSpace((byte) (white ? 5 : 2), startCol) == 'x') {
                 runBasicMove();
             } else {
                 throw new InvalidMoveException(MoveException.INVALID_PUSH_TWO);
